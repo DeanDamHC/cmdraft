@@ -1,4 +1,4 @@
-<style>
+﻿<style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
 #dota-draft-root {
@@ -12,7 +12,6 @@
   --dire: #c14b4b;
   --dire-dim: rgba(193,75,75,0.14);
   --obs: #7f8fa8;
-  --obs-dim: rgba(127,143,168,0.14);
   --text: #eae4d6;
   --text-dim: #93897a;
   --border: #263029;
@@ -106,7 +105,19 @@
 .dd-hero-attr { font-size: 10px; padding: 0 8px 8px; display: flex; align-items: center; gap: 5px; }
 .dd-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 
-/* ---- Draft: lobby ---- */
+/* ---- Lobby browser ---- */
+.dd-lobby-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.dd-lobby-header-row h3 { font-family: 'Cinzel'; color: var(--gold); font-size: 16px; margin: 0; }
+.dd-lobby-list { display: flex; flex-direction: column; gap: 8px; }
+.dd-lobby-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--panel); border: 1px solid var(--border); padding: 12px 14px;
+}
+.dd-lobby-item-name { font-family: 'Cinzel'; font-weight: 700; font-size: 13px; color: var(--gold); }
+.dd-lobby-item-meta { font-size: 11px; color: var(--text-dim); display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+.dd-lobby-item-meta .fearless { color: var(--dire); }
+
+/* ---- Forms (create / password) ---- */
 .dd-lobby {
   max-width: 460px;
   margin: 30px auto;
@@ -120,24 +131,21 @@
 .dd-label { font-size: 11px; text-transform: none; color: var(--text-dim); display: block; margin-bottom: 6px; }
 .dd-input {
   width: 100%; background: var(--panel-alt); border: 1px solid var(--border);
-  color: var(--text); padding: 9px 11px; font-size: 14px; font-family: 'Inter'; letter-spacing: 1px;
+  color: var(--text); padding: 9px 11px; font-size: 14px; font-family: 'Inter'; letter-spacing: 0.5px;
 }
 .dd-input:focus { outline: none; border-color: var(--gold-dim); }
-.dd-role-row, .dd-format-row { display: flex; gap: 8px; }
-.dd-role-btn, .dd-format-btn {
+.dd-format-row { display: flex; gap: 8px; }
+.dd-format-btn {
   flex: 1; padding: 10px 6px; font-size: 12px; font-weight: 600; cursor: pointer;
   border: 1px solid var(--border); background: var(--panel-alt); color: var(--text-dim);
 }
-.dd-role-btn.fp.active { color: var(--radiant); border-color: var(--radiant); background: var(--radiant-dim); }
-.dd-role-btn.sp.active { color: var(--dire); border-color: var(--dire); background: var(--dire-dim); }
-.dd-role-btn.obs.active { color: var(--obs); border-color: var(--obs); background: var(--obs-dim); }
 .dd-format-btn.active { color: var(--gold); border-color: var(--gold); background: rgba(201,162,39,0.12); }
 .dd-toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--panel-alt); border: 1px solid var(--border); cursor: pointer; }
 .dd-toggle-row input { accent-color: var(--gold); width: 15px; height: 15px; }
 .dd-toggle-row .dd-toggle-text { font-size: 12.5px; }
 .dd-toggle-row .dd-toggle-sub { font-size: 10.5px; color: var(--text-dim); display: block; margin-top: 2px; }
 .dd-btn-primary {
-  width: 100%; margin-top: 18px; padding: 11px; background: var(--gold); color: #1a1408;
+  width: 100%; margin-top: 4px; padding: 11px; background: var(--gold); color: #1a1408;
   border: none; font-weight: 700; font-size: 13px; cursor: pointer; font-family: 'Inter';
 }
 .dd-btn-primary:disabled { opacity: .4; cursor: not-allowed; }
@@ -146,7 +154,21 @@
   padding: 7px 12px; font-size: 11.5px; cursor: pointer; font-family: 'Inter';
 }
 .dd-btn-secondary:hover { color: var(--text); border-color: var(--gold-dim); }
-.dd-note { font-size: 11px; color: var(--text-dim); margin-top: -6px; margin-bottom: 14px; line-height: 1.4; }
+.dd-row-gap { display: flex; gap: 8px; }
+.dd-row-gap .dd-btn-primary { margin-top: 0; }
+
+/* ---- Waiting room (slots) ---- */
+.dd-waiting-slots { display: flex; gap: 14px; margin: 20px 0; }
+.dd-slot-box { flex: 1; background: var(--panel); border: 1px dashed var(--border); padding: 26px 12px; text-align: center; cursor: pointer; transition: border-color .15s; }
+.dd-slot-box.fp { border-color: var(--radiant-dim); }
+.dd-slot-box.sp { border-color: var(--dire-dim); }
+.dd-slot-box.filled.fp { border-style: solid; border-color: var(--radiant); background: var(--radiant-dim); }
+.dd-slot-box.filled.sp { border-style: solid; border-color: var(--dire); background: var(--dire-dim); }
+.dd-slot-box.taken { cursor: not-allowed; }
+.dd-slot-box .slot-label { font-family: 'Cinzel'; font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.dd-slot-box.fp .slot-label { color: var(--radiant); }
+.dd-slot-box.sp .slot-label { color: var(--dire); }
+.dd-slot-box .slot-status { font-size: 11px; color: var(--text-dim); }
 
 /* ---- Draft: series bar ---- */
 .dd-series-bar {
@@ -260,7 +282,7 @@
     <p class="dd-title">DRAFT HALL &middot; Dota 2</p>
     <div class="dd-tabs">
       <button class="dd-tab active" data-tab="db">База героев</button>
-      <button class="dd-tab" data-tab="draft">Captains Mode</button>
+      <button class="dd-tab" data-tab="lobby">Лобби</button>
     </div>
   </div>
   <div class="dd-body" id="dd-body"></div>
@@ -272,6 +294,10 @@
   const BODY = document.getElementById('dd-body');
   const IMG_BASE = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/';
 
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   const ATTR_META = {
     str: { label: 'Сила', color: '#c0524a', hue: 355 },
     agi: { label: 'Ловкость', color: '#4a9e6a', hue: 130 },
@@ -279,8 +305,8 @@
     all: { label: 'Универсал', color: '#c9a227', hue: 45 }
   };
 
-  // Hero portraits are generated locally (colour + initials) instead of hotlinked from an
-  // external CDN, because the artifact sandbox blocks cross-origin image/fetch requests.
+  // Hero portraits load from Valve's CDN; if a particular image fails, the colour+initials
+  // tile underneath stays visible instead (see onerror on the <img> below).
   function hashOf(str) {
     let h = 0;
     for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
@@ -362,18 +388,28 @@
   let dbFilter = 'all';
   let dbSearch = '';
 
-  // per-browser (local) state
-  let roomCode = '';
-  let myRole = null; // 'fp' | 'sp' | 'observer'
+  // --- lobby-browser state (per browser) ---
+  let lobbyView = 'list'; // 'list' | 'create' | 'password' | 'inside'
+  let lobbiesList = [];
+  let selectedLobby = null; // { id, name }
+  let pwInput = '';
+  let pwError = null;
+  let createName = '';
+  let createPassword = '';
+  let lobbyFormat = 'bo3';
+  let lobbyFearless = false;
+  let busy = false;
+  let formError = null;
+  let connError = null;
+
+  // --- state once inside a lobby ---
+  let lobbyId = '';
+  let myRole = null; // 'fp' | 'sp'
   let joined = false;
   let room = null;
   let pollTimer = null;
   let tickTimer = null;
-  let lobbyFormat = 'bo3';
-  let lobbyFearless = false;
-  let joinError = null;
-  let joining = false;
-  let connError = null;
+  let listTimer = null;
 
   function loadHeroes() {
     allHeroes = HERO_DATA
@@ -382,19 +418,26 @@
     render();
   }
 
+  function genId() {
+    return Math.random().toString(36).slice(2, 8).toUpperCase();
+  }
+
   function freshGameFields() {
     return { actions: [], stepStartedAt: null, fpReserve: RESERVE_TOTAL, spReserve: RESERVE_TOTAL };
   }
 
-  function initRoomState(format, fearless) {
+  function initLobbyState(name, password, format, fearless) {
     return {
+      name, password,
+      createdAt: Date.now(),
       format: format || 'bo1',
       fearless: !!fearless,
+      started: false,
       gameNumber: 1,
       fpWins: 0,
       spWins: 0,
-      seriesPicked: [],  // hero ids locked for the rest of the series (fearless mode)
-      history: [],        // completed games: { gameNumber, fpPicks, spPicks, winner }
+      seriesPicked: [],
+      history: [],
       fpReady: false,
       spReady: false,
       ...freshGameFields(),
@@ -404,13 +447,13 @@
 
   // --- Storage backend ---
   // This standalone (hosted) build uses a free Firebase Realtime Database instead of the
-  // Claude-artifact-only window.storage API, so the draft can sync between two real devices.
+  // Claude-artifact-only window.storage API, so the draft can sync between real devices.
   //   1. Go to https://console.firebase.google.com -> Add project (free, no card needed)
   //   2. In the left menu: Build -> Realtime Database -> Create Database -> start in TEST MODE
   //   3. Copy the database URL shown at the top of that page
   //      (looks like https://your-project-id-default-rtdb.europe-west1.firebasedatabase.app)
   //   4. Paste it below, replacing the placeholder text
-  const FIREBASE_DB_URL = 'PASTE_YOUR_FIREBASE_DATABASE_URL_HERE';
+  const FIREBASE_DB_URL = 'https://vpadlucup-default-rtdb.europe-west1.firebasedatabase.app';
   const FIREBASE_CONFIGURED = !FIREBASE_DB_URL.includes('PASTE_YOUR');
 
   function fetchWithTimeout(url, options, ms) {
@@ -419,15 +462,15 @@
     return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
   }
 
-  async function readRoom(code) {
-    const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/rooms/${code}.json`);
+  async function readLobby(id) {
+    const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/lobbies/${id}.json`);
     if (!res.ok) throw new Error('Firebase read failed: HTTP ' + res.status);
     const data = await res.json();
     return data || null;
   }
-  async function writeRoom(code, obj) {
+  async function writeLobby(id, obj) {
     obj.updatedAt = Date.now();
-    const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/rooms/${code}.json`, {
+    const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/lobbies/${id}.json`, {
       method: 'PUT',
       // text/plain avoids a CORS "preflight" OPTIONS request — Firebase still parses the JSON body fine either way.
       headers: { 'Content-Type': 'text/plain' },
@@ -435,14 +478,11 @@
     });
     if (!res.ok) throw new Error('Firebase write failed: HTTP ' + res.status);
   }
-  async function pollRoom() {
-    if (!joined || !roomCode) return;
-    try {
-      const r = await readRoom(roomCode);
-      if (r) { room = r; connError = null; if (activeTab === 'draft') render(); }
-    } catch (e) {
-      connError = 'Нет связи с базой данных (' + e.message + ')';
-    }
+  async function fetchAllLobbies() {
+    const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/lobbies.json`);
+    if (!res.ok) throw new Error('Firebase read failed: HTTP ' + res.status);
+    const data = await res.json();
+    return data || {};
   }
 
   function heroById(id) { return allHeroes.find(h => h.id === id); }
@@ -465,13 +505,159 @@
   function winsNeeded(r) { return FORMATS[r.format] || 1; }
   function seriesOver(r) { return r.fpWins >= winsNeeded(r) || r.spWins >= winsNeeded(r); }
 
-  async function autoAdvanceIfTimedOut() {
-    if (!joined || !roomCode) return;
-    let r;
+  // ---------- lobby list ----------
+  async function refreshLobbyList() {
     try {
-      r = await readRoom(roomCode);
-    } catch (e) { return; }
-    if (!r || !r.fpReady || !r.spReady || !r.stepStartedAt) return;
+      const data = await fetchAllLobbies();
+      const arr = Object.keys(data)
+        .map(id => ({ id, ...data[id] }))
+        .filter(l => l.name && !seriesOver(l));
+      arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      lobbiesList = arr;
+      connError = null;
+    } catch (e) {
+      connError = 'Не удалось получить список лобби: ' + e.message;
+    }
+  }
+  function startListPolling() {
+    stopListPolling();
+    refreshLobbyList().then(render);
+    listTimer = setInterval(async () => {
+      await refreshLobbyList();
+      if (activeTab === 'lobby' && lobbyView === 'list' && !joined) render();
+    }, 2500);
+  }
+  function stopListPolling() {
+    if (listTimer) clearInterval(listTimer);
+    listTimer = null;
+  }
+
+  function goToList() {
+    lobbyView = 'list';
+    formError = null;
+    startListPolling();
+    render();
+  }
+  function goToCreate() {
+    lobbyView = 'create';
+    createName = '';
+    createPassword = '';
+    formError = null;
+    stopListPolling();
+    render();
+  }
+  function goToPassword(lobby) {
+    selectedLobby = lobby;
+    lobbyView = 'password';
+    pwInput = '';
+    pwError = null;
+    stopListPolling();
+    render();
+  }
+
+  async function createLobby() {
+    if (!createName.trim() || !createPassword.trim()) return;
+    busy = true; formError = null; render();
+    try {
+      const id = genId();
+      const r = initLobbyState(createName.trim(), createPassword, lobbyFormat, lobbyFearless);
+      await writeLobby(id, r);
+      lobbyId = id;
+      room = r;
+      myRole = null;
+      joined = true;
+      lobbyView = 'inside';
+      startTimers();
+    } catch (e) {
+      formError = 'Не удалось создать лобби: ' + e.message;
+    }
+    busy = false;
+    render();
+  }
+
+  async function submitPassword() {
+    if (!selectedLobby) return;
+    busy = true; pwError = null; render();
+    try {
+      const r = await readLobby(selectedLobby.id);
+      if (!r) { pwError = 'Это лобби больше не существует.'; busy = false; render(); return; }
+      if (r.password !== pwInput) { pwError = 'Неверный пароль.'; busy = false; render(); return; }
+      lobbyId = selectedLobby.id;
+      room = r;
+      myRole = null;
+      joined = true;
+      lobbyView = 'inside';
+      startTimers();
+    } catch (e) {
+      pwError = 'Не удалось подключиться: ' + e.message;
+    }
+    busy = false;
+    render();
+  }
+
+  async function claimSlot(side) {
+    try {
+      const r = await readLobby(lobbyId);
+      if (!r || r[side === 'fp' ? 'fpReady' : 'spReady']) { room = r || room; render(); return; }
+      r[side === 'fp' ? 'fpReady' : 'spReady'] = true;
+      await writeLobby(lobbyId, r);
+      room = r;
+      myRole = side;
+      connError = null;
+    } catch (e) {
+      connError = 'Не удалось занять слот: ' + e.message;
+    }
+    render();
+  }
+
+  async function startDraft() {
+    try {
+      const r = await readLobby(lobbyId);
+      if (!r || !r.fpReady || !r.spReady || r.started) { room = r || room; render(); return; }
+      r.started = true;
+      r.stepStartedAt = Date.now();
+      await writeLobby(lobbyId, r);
+      room = r;
+      connError = null;
+    } catch (e) {
+      connError = 'Не удалось начать драфт: ' + e.message;
+    }
+    render();
+  }
+
+  async function leaveLobby() {
+    if (lobbyId && room && !room.started && myRole) {
+      try {
+        const r = await readLobby(lobbyId);
+        if (r) {
+          r[myRole === 'fp' ? 'fpReady' : 'spReady'] = false;
+          await writeLobby(lobbyId, r);
+        }
+      } catch (e) { /* leaving anyway */ }
+    }
+    joined = false;
+    myRole = null;
+    room = null;
+    lobbyId = '';
+    stopTimers();
+    goToList();
+  }
+
+  async function pollRoom() {
+    if (!joined || !lobbyId) return;
+    try {
+      const r = await readLobby(lobbyId);
+      if (r) { room = r; connError = null; if (activeTab === 'lobby') render(); }
+    } catch (e) {
+      connError = 'Нет связи с базой данных (' + e.message + ')';
+    }
+  }
+
+  async function autoAdvanceIfTimedOut() {
+    if (!joined || !lobbyId) return;
+    let r;
+    try { r = await readLobby(lobbyId); } catch (e) { return; }
+    if (!r || !r.started || !r.stepStartedAt) return;
     const step = currentStep(r);
     if (!step) return;
     const idx = r.actions.length;
@@ -489,7 +675,7 @@
     r.actions.push({ heroId });
     if (step.side === 'fp') r.fpReserve = 0; else r.spReserve = 0;
     r.stepStartedAt = Date.now();
-    try { await writeRoom(roomCode, r); room = r; } catch (e) { /* will retry next tick */ }
+    try { await writeLobby(lobbyId, r); room = r; } catch (e) { /* will retry next tick */ }
   }
 
   function startTimers() {
@@ -497,7 +683,7 @@
     pollTimer = setInterval(pollRoom, 1400);
     tickTimer = setInterval(async () => {
       await autoAdvanceIfTimedOut();
-      if (activeTab === 'draft') render();
+      if (activeTab === 'lobby') render();
     }, 1000);
   }
   function stopTimers() {
@@ -506,34 +692,9 @@
     pollTimer = null; tickTimer = null;
   }
 
-  async function joinRoom() {
-    const codeInput = document.getElementById('dd-room-code');
-    const code = (codeInput.value || '').trim().toUpperCase();
-    if (!code || !myRole) return;
-    joinError = null;
-    joining = true;
-    render();
-    try {
-      let r = await readRoom(code);
-      if (!r) r = initRoomState(lobbyFormat, lobbyFearless);
-      if (myRole === 'fp') r.fpReady = true;
-      if (myRole === 'sp') r.spReady = true;
-      if (r.fpReady && r.spReady && !r.stepStartedAt) r.stepStartedAt = Date.now();
-      await writeRoom(code, r);
-      roomCode = code;
-      room = r;
-      joined = true;
-      startTimers();
-    } catch (e) {
-      joinError = 'Не удалось подключиться к комнате: ' + e.message + '. Проверьте адрес FIREBASE_DB_URL в файле и правила доступа (Rules) в консоли Firebase.';
-    }
-    joining = false;
-    render();
-  }
-
   async function pickHero(heroId) {
     let r;
-    try { r = await readRoom(roomCode); } catch (e) { connError = 'Нет связи с базой данных: ' + e.message; render(); return; }
+    try { r = await readLobby(lobbyId); } catch (e) { connError = 'Нет связи с базой данных: ' + e.message; render(); return; }
     r = r || room;
     const step = currentStep(r);
     if (!step || step.side !== myRole) return;
@@ -549,7 +710,7 @@
     r.actions.push({ heroId });
     r.stepStartedAt = Date.now();
     try {
-      await writeRoom(roomCode, r);
+      await writeLobby(lobbyId, r);
       connError = null;
     } catch (e) {
       connError = 'Не удалось сохранить ход: ' + e.message;
@@ -561,7 +722,7 @@
   // Called from the "Игра окончена" panel once the draft for the current game is complete.
   async function finishGame(winnerSide) {
     let r;
-    try { r = await readRoom(roomCode); } catch (e) { connError = 'Нет связи с базой данных: ' + e.message; render(); return; }
+    try { r = await readLobby(lobbyId); } catch (e) { connError = 'Нет связи с базой данных: ' + e.message; render(); return; }
     r = r || room;
     if (currentStep(r)) return; // draft not actually finished yet
     const fpPicks = pickedIds(r, 'fp');
@@ -575,10 +736,10 @@
     if (!seriesOver(r)) {
       r.gameNumber++;
       Object.assign(r, freshGameFields());
-      r.stepStartedAt = Date.now(); // both captains already ready, next game starts immediately
+      r.stepStartedAt = Date.now(); // both captains already in place, next game starts immediately
     }
     try {
-      await writeRoom(roomCode, r);
+      await writeLobby(lobbyId, r);
       connError = null;
     } catch (e) {
       connError = 'Не удалось сохранить результат игры: ' + e.message;
@@ -587,32 +748,28 @@
     render();
   }
 
-  async function resetRoom() {
-    if (!roomCode) return;
+  async function resetSeries() {
+    if (!lobbyId) return;
     const prev = room || {};
-    const r = initRoomState(prev.format, prev.fearless);
+    const r = {
+      ...initLobbyState(prev.name, prev.password, prev.format, prev.fearless),
+      fpReady: prev.fpReady, spReady: prev.spReady,
+      started: true, stepStartedAt: Date.now()
+    };
     try {
-      await writeRoom(roomCode, r);
+      await writeLobby(lobbyId, r);
       connError = null;
     } catch (e) {
-      connError = 'Не удалось сбросить комнату: ' + e.message;
+      connError = 'Не удалось начать новую серию: ' + e.message;
     }
     room = r;
-    render();
-  }
-
-  function leaveRoom() {
-    joined = false;
-    myRole = null;
-    room = null;
-    stopTimers();
     render();
   }
 
   // ---------- render ----------
   function render() {
     ROOT.querySelectorAll('.dd-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === activeTab));
-    BODY.innerHTML = activeTab === 'db' ? renderDb() : renderDraft();
+    BODY.innerHTML = activeTab === 'db' ? renderDb() : renderLobbyTab();
     attachHandlers();
   }
 
@@ -649,64 +806,145 @@
     return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}с`;
   }
 
-  function renderDraft() {
+  function renderLobbyTab() {
     if (!allHeroes.length) return `<div class="dd-empty-state">Загрузка героев&hellip;</div>`;
     if (!FIREBASE_CONFIGURED) {
-      return `<div class="dd-error">Комната драфта ещё не настроена: откройте файл в редакторе и вставьте адрес вашей Firebase Realtime Database в константу <code>FIREBASE_DB_URL</code> в начале скрипта (инструкция — в комментарии рядом с этой строкой).</div>`;
+      return `<div class="dd-error">Лобби ещё не настроено: откройте файл в редакторе и вставьте адрес вашей Firebase Realtime Database в константу <code>FIREBASE_DB_URL</code> в начале скрипта (инструкция — в комментарии рядом с этой строкой).</div>`;
     }
 
     if (!joined) {
-      return `
-        <div class="dd-lobby">
-          <h3>Комната драфта</h3>
-          <p>Придумайте код комнаты и отправьте его остальным участникам — все вводят тот же код на своих устройствах. Капитаны занимают Radiant/Dire, все остальные могут просто наблюдать.</p>
-          <div class="dd-field">
-            <label class="dd-label">Код комнаты</label>
-            <input class="dd-input" id="dd-room-code" placeholder="Например, TI2026" maxlength="12">
-          </div>
-          <div class="dd-field">
-            <label class="dd-label">Формат серии (если комната ещё не создана)</label>
-            <div class="dd-format-row">
-              ${Object.keys(FORMATS).map(f => `<button class="dd-format-btn ${lobbyFormat===f?'active':''}" data-format="${f}">${f.toUpperCase()}</button>`).join('')}
-            </div>
-            <div class="dd-note">Если по этому коду комната уже создана, формат и режим возьмутся из неё — эти кнопки не повлияют.</div>
-          </div>
-          <div class="dd-field">
-            <label class="dd-toggle-row">
-              <input type="checkbox" id="dd-fearless-toggle" ${lobbyFearless ? 'checked' : ''}>
-              <span>
-                <span class="dd-toggle-text">Fearless Draft</span>
-                <span class="dd-toggle-sub">Герои, выбранные в прошлых играх серии, недоступны для пика в следующих (баны каждую игру обычные)</span>
-              </span>
-            </label>
-          </div>
-          <div class="dd-field">
-            <label class="dd-label">Ваша роль</label>
-            <div class="dd-role-row">
-              <button class="dd-role-btn fp ${myRole==='fp'?'active':''}" data-role="fp">Radiant (First Pick)</button>
-              <button class="dd-role-btn sp ${myRole==='sp'?'active':''}" data-role="sp">Dire (Second Pick)</button>
-              <button class="dd-role-btn obs ${myRole==='observer'?'active':''}" data-role="observer">Наблюдатель</button>
-            </div>
-          </div>
-          ${joinError ? `<div class="dd-error" style="margin-bottom:14px;">${joinError}</div>` : ''}
-          <button class="dd-btn-primary" id="dd-join" ${(myRole && !joining) ? '' : 'disabled'}>${joining ? 'Подключение…' : 'Войти в комнату'}</button>
-        </div>
-      `;
+      if (lobbyView === 'create') return renderCreateScreen();
+      if (lobbyView === 'password') return renderPasswordScreen();
+      return renderListScreen();
     }
 
-    const r = room || initRoomState(lobbyFormat, lobbyFearless);
-    const bothReady = r.fpReady && r.spReady;
+    const r = room;
+    if (!r) return `<div class="dd-empty-state">Загрузка лобби&hellip;</div>`;
+    if (!r.started) return renderWaitingRoom(r);
+    return renderActiveDraft(r);
+  }
+
+  function renderListScreen() {
+    return `
+      <div class="dd-lobby-header-row">
+        <h3>Активные лобби</h3>
+        <button class="dd-btn-primary" style="width:auto; margin:0; padding:9px 16px;" id="dd-create-open">+ Создать лобби</button>
+      </div>
+      ${connError ? `<div class="dd-error" style="margin-bottom:14px;">${connError}</div>` : ''}
+      ${lobbiesList.length === 0 ? `<div class="dd-empty-state">Активных лобби пока нет — создайте своё.</div>` : `
+        <div class="dd-lobby-list">
+          ${lobbiesList.map(l => {
+            const players = (l.fpReady ? 1 : 0) + (l.spReady ? 1 : 0);
+            return `
+            <div class="dd-lobby-item">
+              <div>
+                <div class="dd-lobby-item-name">${esc(l.name)}</div>
+                <div class="dd-lobby-item-meta">
+                  <span>${(l.format || '').toUpperCase()}</span>
+                  <span>Игроков: ${players}/2</span>
+                  ${l.fearless ? '<span class="fearless">FEARLESS DRAFT</span>' : ''}
+                </div>
+              </div>
+              <button class="dd-btn-secondary" data-join-id="${l.id}" data-join-name="${esc(l.name)}">Войти</button>
+            </div>
+          `;
+          }).join('')}
+        </div>
+      `}
+    `;
+  }
+
+  function renderCreateScreen() {
+    return `
+      <div class="dd-lobby">
+        <h3>Новое лобби</h3>
+        <p>Придумайте название и пароль. Их нужно будет сообщить второму капитану, чтобы он мог зайти.</p>
+        ${formError ? `<div class="dd-error" style="margin-bottom:14px;">${formError}</div>` : ''}
+        <div class="dd-field">
+          <label class="dd-label">Название лобби</label>
+          <input class="dd-input" id="dd-create-name" placeholder="Например, Пятничный драфт" maxlength="40" value="${esc(createName)}">
+        </div>
+        <div class="dd-field">
+          <label class="dd-label">Пароль</label>
+          <input class="dd-input" id="dd-create-pass" type="text" placeholder="Придумайте пароль" maxlength="40" value="${esc(createPassword)}">
+        </div>
+        <div class="dd-field">
+          <label class="dd-label">Формат серии</label>
+          <div class="dd-format-row">
+            ${Object.keys(FORMATS).map(f => `<button class="dd-format-btn ${lobbyFormat===f?'active':''}" data-format="${f}">${f.toUpperCase()}</button>`).join('')}
+          </div>
+        </div>
+        <div class="dd-field">
+          <label class="dd-toggle-row">
+            <input type="checkbox" id="dd-fearless-toggle" ${lobbyFearless ? 'checked' : ''}>
+            <span>
+              <span class="dd-toggle-text">Fearless Draft</span>
+              <span class="dd-toggle-sub">Герои, выбранные в прошлых играх серии, недоступны для пика в следующих (баны каждую игру обычные)</span>
+            </span>
+          </label>
+        </div>
+        <div class="dd-row-gap">
+          <button class="dd-btn-secondary" id="dd-create-back">Назад</button>
+          <button class="dd-btn-primary" id="dd-create-submit" ${(createName.trim() && createPassword.trim() && !busy) ? '' : 'disabled'}>${busy ? 'Создание…' : 'Создать и войти'}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPasswordScreen() {
+    return `
+      <div class="dd-lobby">
+        <h3>${esc(selectedLobby.name)}</h3>
+        <p>Введите пароль этого лобби, чтобы войти.</p>
+        ${pwError ? `<div class="dd-error" style="margin-bottom:14px;">${pwError}</div>` : ''}
+        <div class="dd-field">
+          <label class="dd-label">Пароль</label>
+          <input class="dd-input" id="dd-pw-input" type="text" placeholder="Пароль" value="${esc(pwInput)}">
+        </div>
+        <div class="dd-row-gap">
+          <button class="dd-btn-secondary" id="dd-pw-back">Назад</button>
+          <button class="dd-btn-primary" id="dd-pw-submit" ${busy ? 'disabled' : ''}>${busy ? 'Проверка…' : 'Войти'}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderWaitingRoom(r) {
+    return `
+      <div class="dd-lobby" style="max-width:560px;">
+        <h3>${esc(r.name)}</h3>
+        <p>${(r.format || '').toUpperCase()} ${r.fearless ? '· Fearless Draft' : ''} — займите сторону и нажмите «Начать», когда оба капитана готовы.</p>
+        ${connError ? `<div class="dd-error" style="margin-bottom:14px;">${connError}</div>` : ''}
+        <div class="dd-waiting-slots">
+          <div class="dd-slot-box fp ${r.fpReady ? 'filled' : ''} ${r.fpReady && myRole !== 'fp' ? 'taken' : ''}" id="dd-slot-fp">
+            <div class="slot-label">RADIANT</div>
+            <div class="slot-status">${r.fpReady ? (myRole === 'fp' ? 'Вы здесь' : 'Занято') : 'Свободно — нажмите, чтобы занять'}</div>
+          </div>
+          <div class="dd-slot-box sp ${r.spReady ? 'filled' : ''} ${r.spReady && myRole !== 'sp' ? 'taken' : ''}" id="dd-slot-sp">
+            <div class="slot-label">DIRE</div>
+            <div class="slot-status">${r.spReady ? (myRole === 'sp' ? 'Вы здесь' : 'Занято') : 'Свободно — нажмите, чтобы занять'}</div>
+          </div>
+        </div>
+        <div class="dd-row-gap">
+          <button class="dd-btn-secondary" id="dd-leave">Покинуть лобби</button>
+          <button class="dd-btn-primary" id="dd-start" ${(r.fpReady && r.spReady) ? '' : 'disabled'}>Начать</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderActiveDraft(r) {
     const step = currentStep(r);
     const banned = bannedIds(r);
     const fpPicks = pickedIds(r, 'fp');
     const spPicks = pickedIds(r, 'sp');
-    const gameOver = bothReady && !step;
+    const gameOver = !step;
     const over = seriesOver(r);
 
     const seriesBar = `
       <div class="dd-series-bar">
         <div class="dd-series-left">
-          <span>Игра ${r.gameNumber} · ${r.format.toUpperCase()}</span>
+          <span>${esc(r.name)} · Игра ${r.gameNumber} · ${r.format.toUpperCase()}</span>
           <span class="dd-score"><span class="fp">${r.fpWins}</span> : <span class="sp">${r.spWins}</span></span>
           ${r.fearless ? '<span class="dd-fearless-badge">FEARLESS DRAFT</span>' : ''}
         </div>
@@ -722,16 +960,9 @@
         <div class="dd-series-over">
           <h4>Серия завершена — победили ${winnerText}!</h4>
           <p>Счёт ${r.fpWins}:${r.spWins} (${r.format.toUpperCase()})</p>
-          <button class="dd-btn-secondary" id="dd-reset">Новая серия (сброс)</button>
+          <button class="dd-btn-secondary" id="dd-reset">Новая серия</button>
         </div>
         ${renderHistory(r)}
-      `;
-    }
-
-    if (!bothReady) {
-      return `
-        ${seriesBar}
-        <div class="dd-status-bar"><span class="dd-wait-turn">Ожидание капитанов&hellip; (Radiant: ${r.fpReady?'в комнате':'—'}, Dire: ${r.spReady?'в комнате':'—'})</span></div>
       `;
     }
 
@@ -747,9 +978,9 @@
           </div>
         </div>
         <div class="dd-draft-layout">
-          ${teamPanel('fp', fpPicks, 'RADIANT · First Pick', r, banned)}
+          ${teamPanel('fp', fpPicks, 'RADIANT · First Pick', r)}
           <div></div>
-          ${teamPanel('sp', spPicks, 'DIRE · Second Pick', r, banned)}
+          ${teamPanel('sp', spPicks, 'DIRE · Second Pick', r)}
         </div>
         ${renderHistory(r)}
       `;
@@ -766,10 +997,9 @@
     const statusHtml = `<div class="dd-status-bar">
         <div class="dd-status-left">
           <span class="dd-badge ${step.type}">${step.type === 'ban' ? 'БАН' : 'ПИК'} · шаг ${step.n}/24</span>
-          <span class="${isMyTurn ? 'dd-your-turn' : 'dd-wait-turn'}">${myRole === 'observer' ? (step.side === 'fp' ? 'Ход Radiant' : 'Ход Dire') : (isMyTurn ? 'Ваш ход' : (step.side === 'fp' ? 'Ход Radiant' : 'Ход Dire'))}</span>
+          <span class="${isMyTurn ? 'dd-your-turn' : 'dd-wait-turn'}">${isMyTurn ? 'Ваш ход' : (step.side === 'fp' ? 'Ход Radiant' : 'Ход Dire')}</span>
           <span class="dd-timer ${timerClass}">${fmtTime(remaining)}${inReserve ? ' (резерв)' : ''}</span>
         </div>
-        <div><button class="dd-btn-secondary" id="dd-reset">Сброс</button></div>
       </div>`;
 
     const timeline = `<div class="dd-timeline">${SEQUENCE.map((s, i) => {
@@ -795,22 +1025,22 @@
       </div>
     `;
 
-    const roleLabel = myRole === 'fp' ? 'Radiant (First Pick)' : myRole === 'sp' ? 'Dire (Second Pick)' : 'наблюдатель';
+    const roleLabel = myRole === 'fp' ? 'Radiant (First Pick)' : 'Dire (Second Pick)';
 
     return `
       ${seriesBar}
       ${statusHtml}
       ${timeline}
       <div class="dd-draft-layout">
-        ${teamPanel('fp', fpPicks, 'RADIANT · First Pick', r, banned)}
+        ${teamPanel('fp', fpPicks, 'RADIANT · First Pick', r)}
         <div>${heroGrid}</div>
-        ${teamPanel('sp', spPicks, 'DIRE · Second Pick', r, banned)}
+        ${teamPanel('sp', spPicks, 'DIRE · Second Pick', r)}
       </div>
-      <div class="dd-footer-note">Комната: <b>${roomCode}</b> · Вы — ${roleLabel}. Таймер: 15 сек на первый бан, 30 сек на остальные шаги, плюс резерв 130 сек на сторону за игру. ${r.fearless ? 'Режим Fearless Draft: пикнутые в прошлых играх серии герои недоступны для пика.' : ''}</div>
+      <div class="dd-footer-note">Лобби «${esc(r.name)}» · Вы — ${roleLabel}. Таймер: 15 сек на первый бан, 30 сек на остальные шаги, плюс резерв 130 сек на сторону за игру. ${r.fearless ? 'Режим Fearless Draft: пикнутые в прошлых играх серии герои недоступны для пика.' : ''}</div>
     `;
   }
 
-  function teamPanel(side, picks, label, r, banned) {
+  function teamPanel(side, picks, label, r) {
     const banSlots = SEQUENCE.filter(s => s.type === 'ban' && s.side === side).length;
     const sideBans = [];
     r.actions.forEach((a, i) => { if (SEQUENCE[i].type === 'ban' && SEQUENCE[i].side === side) sideBans.push(a.heroId); });
@@ -858,7 +1088,11 @@
   }
 
   function attachHandlers() {
-    ROOT.querySelectorAll('.dd-tab').forEach(t => t.onclick = () => { activeTab = t.dataset.tab; render(); });
+    ROOT.querySelectorAll('.dd-tab').forEach(t => t.onclick = () => {
+      activeTab = t.dataset.tab;
+      if (activeTab === 'lobby' && !joined && lobbyView === 'list') startListPolling(); else stopListPolling();
+      render();
+    });
 
     const search = document.getElementById('dd-search');
     if (search) {
@@ -872,22 +1106,46 @@
     }
     ROOT.querySelectorAll('.dd-filter-btn').forEach(b => b.onclick = () => { dbFilter = b.dataset.attr; render(); });
 
-    ROOT.querySelectorAll('.dd-role-btn').forEach(b => b.onclick = () => { myRole = b.dataset.role; render(); });
+    // --- lobby list ---
+    const createOpenBtn = document.getElementById('dd-create-open');
+    if (createOpenBtn) createOpenBtn.onclick = goToCreate;
+    ROOT.querySelectorAll('[data-join-id]').forEach(b => b.onclick = () => goToPassword({ id: b.dataset.joinId, name: b.dataset.joinName }));
+
+    // --- create screen ---
+    const nameInput = document.getElementById('dd-create-name');
+    if (nameInput) nameInput.oninput = (e) => { createName = e.target.value; document.getElementById('dd-create-submit').disabled = !(createName.trim() && createPassword.trim()); };
+    const passInput = document.getElementById('dd-create-pass');
+    if (passInput) passInput.oninput = (e) => { createPassword = e.target.value; document.getElementById('dd-create-submit').disabled = !(createName.trim() && createPassword.trim()); };
     ROOT.querySelectorAll('.dd-format-btn').forEach(b => b.onclick = () => { lobbyFormat = b.dataset.format; render(); });
     const fearlessToggle = document.getElementById('dd-fearless-toggle');
     if (fearlessToggle) fearlessToggle.onchange = (e) => { lobbyFearless = e.target.checked; };
+    const createBack = document.getElementById('dd-create-back');
+    if (createBack) createBack.onclick = goToList;
+    const createSubmit = document.getElementById('dd-create-submit');
+    if (createSubmit) createSubmit.onclick = createLobby;
 
-    const joinBtn = document.getElementById('dd-join');
-    if (joinBtn) joinBtn.onclick = joinRoom;
+    // --- password screen ---
+    const pwField = document.getElementById('dd-pw-input');
+    if (pwField) pwField.oninput = (e) => { pwInput = e.target.value; };
+    const pwBack = document.getElementById('dd-pw-back');
+    if (pwBack) pwBack.onclick = goToList;
+    const pwSubmit = document.getElementById('dd-pw-submit');
+    if (pwSubmit) pwSubmit.onclick = submitPassword;
 
+    // --- waiting room ---
+    const slotFp = document.getElementById('dd-slot-fp');
+    if (slotFp) slotFp.onclick = () => { if (!room.fpReady) claimSlot('fp'); };
+    const slotSp = document.getElementById('dd-slot-sp');
+    if (slotSp) slotSp.onclick = () => { if (!room.spReady) claimSlot('sp'); };
+    const startBtn = document.getElementById('dd-start');
+    if (startBtn) startBtn.onclick = startDraft;
+
+    // --- active draft ---
     const leaveBtn = document.getElementById('dd-leave');
-    if (leaveBtn) leaveBtn.onclick = leaveRoom;
-
+    if (leaveBtn) leaveBtn.onclick = leaveLobby;
     const resetBtn = document.getElementById('dd-reset');
-    if (resetBtn) resetBtn.onclick = resetRoom;
-
+    if (resetBtn) resetBtn.onclick = resetSeries;
     ROOT.querySelectorAll('.dd-winner-btn').forEach(b => b.onclick = () => finishGame(b.dataset.winner));
-
     ROOT.querySelectorAll('.dd-pick-card:not(.disabled)').forEach(c => c.onclick = () => pickHero(parseInt(c.dataset.heroId, 10)));
   }
 
