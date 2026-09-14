@@ -1,4 +1,4 @@
-﻿<style>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
 #dota-draft-root {
@@ -371,6 +371,9 @@
   let tickTimer = null;
   let lobbyFormat = 'bo3';
   let lobbyFearless = false;
+  let joinError = null;
+  let joining = false;
+  let connError = null;
 
   function loadHeroes() {
     allHeroes = HERO_DATA
@@ -407,33 +410,39 @@
   //   3. Copy the database URL shown at the top of that page
   //      (looks like https://your-project-id-default-rtdb.europe-west1.firebasedatabase.app)
   //   4. Paste it below, replacing the placeholder text
-  const FIREBASE_DB_URL = 'https://vpadlucup-default-rtdb.europe-west1.firebasedatabase.app';
+  const FIREBASE_DB_URL = 'PASTE_YOUR_FIREBASE_DATABASE_URL_HERE';
   const FIREBASE_CONFIGURED = !FIREBASE_DB_URL.includes('PASTE_YOUR');
 
+  function fetchWithTimeout(url, options, ms) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms || 10000);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+  }
+
   async function readRoom(code) {
-    try {
-      const res = await fetch(`${FIREBASE_DB_URL}/rooms/${code}.json`);
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data || null;
-    } catch (e) {
-      return null;
-    }
+    const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/rooms/${code}.json`);
+    if (!res.ok) throw new Error('Firebase read failed: HTTP ' + res.status);
+    const data = await res.json();
+    return data || null;
   }
   async function writeRoom(code, obj) {
     obj.updatedAt = Date.now();
-    try {
-      await fetch(`${FIREBASE_DB_URL}/rooms/${code}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(obj)
-      });
-    } catch (e) { /* best effort */ }
+    const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/rooms/${code}.json`, {
+      method: 'PUT',
+      // text/plain avoids a CORS "preflight" OPTIONS request — Firebase still parses the JSON body fine either way.
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(obj)
+    });
+    if (!res.ok) throw new Error('Firebase write failed: HTTP ' + res.status);
   }
   async function pollRoom() {
     if (!joined || !roomCode) return;
-    const r = await readRoom(roomCode);
-    if (r) { room = r; if (activeTab === 'draft') render(); }
+    try {
+      const r = await readRoom(roomCode);
+      if (r) { room = r; connError = null; if (activeTab === 'draft') render(); }
+    } catch (e) {
+      connError = 'Нет связи с базой данных (' + e.message + ')';
+    }
   }
 
   function heroById(id) { return allHeroes.find(h => h.id === id); }
@@ -458,7 +467,10 @@
 
   async function autoAdvanceIfTimedOut() {
     if (!joined || !roomCode) return;
-    const r = await readRoom(roomCode);
+    let r;
+    try {
+      r = await readRoom(roomCode);
+    } catch (e) { return; }
     if (!r || !r.fpReady || !r.spReady || !r.stepStartedAt) return;
     const step = currentStep(r);
     if (!step) return;
@@ -477,8 +489,7 @@
     r.actions.push({ heroId });
     if (step.side === 'fp') r.fpReserve = 0; else r.spReserve = 0;
     r.stepStartedAt = Date.now();
-    await writeRoom(roomCode, r);
-    room = r;
+    try { await writeRoom(roomCode, r); room = r; } catch (e) { /* will retry next tick */ }
   }
 
   function startTimers() {
@@ -499,21 +510,31 @@
     const codeInput = document.getElementById('dd-room-code');
     const code = (codeInput.value || '').trim().toUpperCase();
     if (!code || !myRole) return;
-    roomCode = code;
-    let r = await readRoom(code);
-    if (!r) r = initRoomState(lobbyFormat, lobbyFearless);
-    if (myRole === 'fp') r.fpReady = true;
-    if (myRole === 'sp') r.spReady = true;
-    if (r.fpReady && r.spReady && !r.stepStartedAt) r.stepStartedAt = Date.now();
-    await writeRoom(code, r);
-    room = r;
-    joined = true;
-    startTimers();
+    joinError = null;
+    joining = true;
+    render();
+    try {
+      let r = await readRoom(code);
+      if (!r) r = initRoomState(lobbyFormat, lobbyFearless);
+      if (myRole === 'fp') r.fpReady = true;
+      if (myRole === 'sp') r.spReady = true;
+      if (r.fpReady && r.spReady && !r.stepStartedAt) r.stepStartedAt = Date.now();
+      await writeRoom(code, r);
+      roomCode = code;
+      room = r;
+      joined = true;
+      startTimers();
+    } catch (e) {
+      joinError = 'Не удалось подключиться к комнате: ' + e.message + '. Проверьте адрес FIREBASE_DB_URL в файле и правила доступа (Rules) в консоли Firebase.';
+    }
+    joining = false;
     render();
   }
 
   async function pickHero(heroId) {
-    const r = await readRoom(roomCode) || room;
+    let r;
+    try { r = await readRoom(roomCode); } catch (e) { connError = 'Нет связи с базой данных: ' + e.message; render(); return; }
+    r = r || room;
     const step = currentStep(r);
     if (!step || step.side !== myRole) return;
     const locked = new Set([...bannedIds(r), ...pickedIds(r, 'fp'), ...pickedIds(r, 'sp'), ...(r.fearless ? r.seriesPicked : [])]);
@@ -527,14 +548,21 @@
     else r.spReserve = Math.max(0, r.spReserve - used);
     r.actions.push({ heroId });
     r.stepStartedAt = Date.now();
-    await writeRoom(roomCode, r);
+    try {
+      await writeRoom(roomCode, r);
+      connError = null;
+    } catch (e) {
+      connError = 'Не удалось сохранить ход: ' + e.message;
+    }
     room = r;
     render();
   }
 
   // Called from the "Игра окончена" panel once the draft for the current game is complete.
   async function finishGame(winnerSide) {
-    const r = await readRoom(roomCode) || room;
+    let r;
+    try { r = await readRoom(roomCode); } catch (e) { connError = 'Нет связи с базой данных: ' + e.message; render(); return; }
+    r = r || room;
     if (currentStep(r)) return; // draft not actually finished yet
     const fpPicks = pickedIds(r, 'fp');
     const spPicks = pickedIds(r, 'sp');
@@ -549,7 +577,12 @@
       Object.assign(r, freshGameFields());
       r.stepStartedAt = Date.now(); // both captains already ready, next game starts immediately
     }
-    await writeRoom(roomCode, r);
+    try {
+      await writeRoom(roomCode, r);
+      connError = null;
+    } catch (e) {
+      connError = 'Не удалось сохранить результат игры: ' + e.message;
+    }
     room = r;
     render();
   }
@@ -558,7 +591,12 @@
     if (!roomCode) return;
     const prev = room || {};
     const r = initRoomState(prev.format, prev.fearless);
-    await writeRoom(roomCode, r);
+    try {
+      await writeRoom(roomCode, r);
+      connError = null;
+    } catch (e) {
+      connError = 'Не удалось сбросить комнату: ' + e.message;
+    }
     room = r;
     render();
   }
@@ -650,7 +688,8 @@
               <button class="dd-role-btn obs ${myRole==='observer'?'active':''}" data-role="observer">Наблюдатель</button>
             </div>
           </div>
-          <button class="dd-btn-primary" id="dd-join" ${myRole ? '' : 'disabled'}>Войти в комнату</button>
+          ${joinError ? `<div class="dd-error" style="margin-bottom:14px;">${joinError}</div>` : ''}
+          <button class="dd-btn-primary" id="dd-join" ${(myRole && !joining) ? '' : 'disabled'}>${joining ? 'Подключение…' : 'Войти в комнату'}</button>
         </div>
       `;
     }
@@ -673,6 +712,7 @@
         </div>
         <div><button class="dd-btn-secondary" id="dd-leave">Выйти</button></div>
       </div>
+      ${connError ? `<div class="dd-error" style="margin-bottom:14px;">${connError}</div>` : ''}
     `;
 
     if (over) {
