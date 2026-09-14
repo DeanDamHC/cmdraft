@@ -1,0 +1,856 @@
+﻿<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+
+#dota-draft-root {
+  --bg: #0b1210;
+  --panel: #121c19;
+  --panel-alt: #0e1614;
+  --gold: #c9a227;
+  --gold-dim: #7a662a;
+  --radiant: #6fae4b;
+  --radiant-dim: rgba(111,174,75,0.14);
+  --dire: #c14b4b;
+  --dire-dim: rgba(193,75,75,0.14);
+  --obs: #7f8fa8;
+  --obs-dim: rgba(127,143,168,0.14);
+  --text: #eae4d6;
+  --text-dim: #93897a;
+  --border: #263029;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 0;
+  min-height: 600px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+#dota-draft-root * { box-sizing: border-box; }
+
+.dd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #142019, #0e1614);
+}
+.dd-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  color: var(--gold);
+  margin: 0;
+}
+.dd-tabs { display: flex; gap: 4px; }
+.dd-tab {
+  font-family: 'Inter';
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.dd-tab.active { color: var(--gold); border-color: var(--gold-dim); }
+.dd-tab:hover:not(.active) { color: var(--text); }
+
+.dd-body { padding: 20px 24px 28px; }
+
+/* ---- Hero DB ---- */
+.dd-controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.dd-search {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: 'Inter';
+  min-width: 220px;
+}
+.dd-search:focus { outline: none; border-color: var(--gold-dim); }
+.dd-filter-btn {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: 'Inter';
+  font-weight: 600;
+  cursor: pointer;
+}
+.dd-filter-btn.active { color: var(--bg); background: var(--gold); border-color: var(--gold); }
+.dd-count { font-size: 12px; color: var(--text-dim); margin-left: auto; }
+
+.dd-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 10px;
+}
+.dd-hero-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  cursor: default;
+  transition: border-color .15s, transform .15s;
+}
+.dd-hero-card:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+.dd-hero-img { width: 100%; aspect-ratio: 16/9; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel'; font-weight: 700; font-size: 16px; letter-spacing: 1px; color: rgba(255,255,255,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+.dd-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.dd-avatar-label { position: relative; z-index: 0; }
+.dd-hero-name { font-size: 11.5px; font-weight: 600; padding: 7px 8px 3px; line-height: 1.25; }
+.dd-hero-attr { font-size: 10px; padding: 0 8px 8px; display: flex; align-items: center; gap: 5px; }
+.dd-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+/* ---- Draft: lobby ---- */
+.dd-lobby {
+  max-width: 460px;
+  margin: 30px auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 28px;
+}
+.dd-lobby h3 { font-family: 'Cinzel'; color: var(--gold); font-size: 16px; margin: 0 0 6px; }
+.dd-lobby p { font-size: 12.5px; color: var(--text-dim); margin: 0 0 18px; line-height: 1.5; }
+.dd-field { margin-bottom: 14px; }
+.dd-label { font-size: 11px; text-transform: none; color: var(--text-dim); display: block; margin-bottom: 6px; }
+.dd-input {
+  width: 100%; background: var(--panel-alt); border: 1px solid var(--border);
+  color: var(--text); padding: 9px 11px; font-size: 14px; font-family: 'Inter'; letter-spacing: 1px;
+}
+.dd-input:focus { outline: none; border-color: var(--gold-dim); }
+.dd-role-row, .dd-format-row { display: flex; gap: 8px; }
+.dd-role-btn, .dd-format-btn {
+  flex: 1; padding: 10px 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border); background: var(--panel-alt); color: var(--text-dim);
+}
+.dd-role-btn.fp.active { color: var(--radiant); border-color: var(--radiant); background: var(--radiant-dim); }
+.dd-role-btn.sp.active { color: var(--dire); border-color: var(--dire); background: var(--dire-dim); }
+.dd-role-btn.obs.active { color: var(--obs); border-color: var(--obs); background: var(--obs-dim); }
+.dd-format-btn.active { color: var(--gold); border-color: var(--gold); background: rgba(201,162,39,0.12); }
+.dd-toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--panel-alt); border: 1px solid var(--border); cursor: pointer; }
+.dd-toggle-row input { accent-color: var(--gold); width: 15px; height: 15px; }
+.dd-toggle-row .dd-toggle-text { font-size: 12.5px; }
+.dd-toggle-row .dd-toggle-sub { font-size: 10.5px; color: var(--text-dim); display: block; margin-top: 2px; }
+.dd-btn-primary {
+  width: 100%; margin-top: 18px; padding: 11px; background: var(--gold); color: #1a1408;
+  border: none; font-weight: 700; font-size: 13px; cursor: pointer; font-family: 'Inter';
+}
+.dd-btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+.dd-btn-secondary {
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  padding: 7px 12px; font-size: 11.5px; cursor: pointer; font-family: 'Inter';
+}
+.dd-btn-secondary:hover { color: var(--text); border-color: var(--gold-dim); }
+.dd-note { font-size: 11px; color: var(--text-dim); margin-top: -6px; margin-bottom: 14px; line-height: 1.4; }
+
+/* ---- Draft: series bar ---- */
+.dd-series-bar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  padding: 10px 14px; background: var(--panel-alt); border: 1px solid var(--border); margin-bottom: 10px; font-size: 12.5px;
+}
+.dd-series-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dd-fearless-badge { font-family: 'Cinzel'; font-size: 10.5px; font-weight: 700; color: var(--dire); border: 1px solid var(--dire); padding: 3px 8px; letter-spacing: .5px; }
+.dd-score { font-family: 'Cinzel'; font-weight: 700; font-size: 14px; }
+.dd-score .fp { color: var(--radiant); }
+.dd-score .sp { color: var(--dire); }
+
+/* ---- Draft: active ---- */
+.dd-status-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: var(--panel); border: 1px solid var(--border); margin-bottom: 14px;
+  font-size: 13px; flex-wrap: wrap; gap: 8px;
+}
+.dd-status-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dd-badge { font-family: 'Cinzel'; font-weight: 700; font-size: 12px; padding: 4px 10px; letter-spacing: .5px; }
+.dd-badge.ban { color: var(--dire); border: 1px solid var(--dire); }
+.dd-badge.pick { color: var(--radiant); border: 1px solid var(--radiant); }
+.dd-your-turn { color: var(--gold); font-weight: 700; }
+.dd-wait-turn { color: var(--text-dim); }
+.dd-timer {
+  font-family: 'Cinzel'; font-weight: 700; font-size: 15px; padding: 3px 10px;
+  border: 1px solid var(--gold-dim); color: var(--gold); min-width: 56px; text-align: center;
+}
+.dd-timer.low { color: var(--dire); border-color: var(--dire); }
+.dd-timer.reserve { color: var(--obs); border-color: var(--obs); }
+
+.dd-timeline { display: flex; gap: 3px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+.dd-tstep {
+  width: 20px; height: 20px; flex: none; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-dim);
+}
+.dd-tstep.fp { border-color: var(--radiant-dim); }
+.dd-tstep.sp { border-color: var(--dire-dim); }
+.dd-tstep.done.fp { background: var(--radiant-dim); color: var(--radiant); }
+.dd-tstep.done.sp { background: var(--dire-dim); color: var(--dire); }
+.dd-tstep.current { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+.dd-draft-layout { display: grid; grid-template-columns: 190px 1fr 190px; gap: 14px; }
+@media (max-width: 780px) { .dd-draft-layout { grid-template-columns: 1fr; } }
+
+.dd-team-panel { background: var(--panel); border: 1px solid var(--border); padding: 12px; }
+.dd-team-panel.fp { border-left: 3px solid var(--radiant); }
+.dd-team-panel.sp { border-left: 3px solid var(--dire); }
+.dd-team-title-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.dd-team-title { font-family: 'Cinzel'; font-size: 12px; font-weight: 700; }
+.dd-team-panel.fp .dd-team-title { color: var(--radiant); }
+.dd-team-panel.sp .dd-team-title { color: var(--dire); }
+.dd-team-reserve { font-size: 10px; color: var(--text-dim); }
+.dd-slot-label { font-size: 10px; color: var(--text-dim); margin: 8px 0 4px; }
+.dd-picks-row { display: flex; flex-direction: column; gap: 4px; }
+.dd-bans-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.dd-slot { background: var(--panel-alt); border: 1px solid var(--border); display: flex; align-items: center; gap: 6px; padding: 4px; font-size: 10.5px; min-height: 30px; }
+.dd-slot-avatar { width: 22px; height: 22px; flex: none; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel'; font-weight: 700; font-size: 8px; color: rgba(255,255,255,0.9); }
+.dd-slot.ban-slot { width: 30px; height: 30px; padding: 0; justify-content: center; }
+.dd-slot.ban-slot .dd-slot-avatar { width: 100%; height: 100%; filter: grayscale(1) brightness(.55); }
+.dd-slot.empty { color: var(--text-dim); justify-content: center; }
+
+.dd-hero-pick-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 7px;
+  max-height: 480px; overflow-y: auto; padding-right: 4px;
+}
+.dd-pick-card {
+  background: var(--panel); border: 1px solid var(--border); cursor: pointer; overflow: hidden; position: relative;
+  transition: border-color .12s, opacity .12s;
+}
+.dd-pick-card:hover { border-color: var(--gold); }
+.dd-pick-card.disabled { opacity: .22; cursor: not-allowed; pointer-events: none; }
+.dd-pick-card.fearless-locked { opacity: .3; cursor: not-allowed; pointer-events: none; }
+.dd-pick-card.fearless-locked::after {
+  content: '✕ серия'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(11,18,16,0.55); color: var(--dire); font-size: 9px; font-weight: 700; text-align: center;
+}
+
+.dd-pick-card .dd-hero-name { font-size: 10px; padding: 5px 6px; }
+
+.dd-empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: 13px; }
+.dd-error { color: var(--dire); font-size: 12.5px; padding: 12px; border: 1px solid var(--dire); background: var(--dire-dim); }
+.dd-footer-note { font-size: 11px; color: var(--text-dim); margin-top: 16px; line-height: 1.5; }
+
+/* ---- Game over / series history ---- */
+.dd-gameover {
+  text-align: center; padding: 24px; background: var(--panel); border: 1px solid var(--gold-dim); margin-bottom: 16px;
+}
+.dd-gameover h4 { font-family: 'Cinzel'; color: var(--gold); margin: 0 0 4px; font-size: 15px; }
+.dd-gameover p { font-size: 12px; color: var(--text-dim); margin: 0 0 16px; }
+.dd-winner-row { display: flex; gap: 10px; justify-content: center; }
+.dd-winner-btn { padding: 10px 20px; font-family: 'Cinzel'; font-weight: 700; font-size: 12.5px; cursor: pointer; border: 1px solid; background: transparent; }
+.dd-winner-btn.fp { color: var(--radiant); border-color: var(--radiant); }
+.dd-winner-btn.fp:hover { background: var(--radiant-dim); }
+.dd-winner-btn.sp { color: var(--dire); border-color: var(--dire); }
+.dd-winner-btn.sp:hover { background: var(--dire-dim); }
+.dd-series-over { text-align: center; padding: 26px; background: var(--panel); border: 1px solid var(--gold); margin-bottom: 16px; }
+.dd-series-over h4 { font-family: 'Cinzel'; color: var(--gold); font-size: 17px; margin: 0 0 6px; }
+
+.dd-history { margin-bottom: 18px; }
+.dd-history h5 { font-family: 'Cinzel'; font-size: 11.5px; color: var(--text-dim); margin: 0 0 8px; letter-spacing: .5px; }
+.dd-history-game { display: grid; grid-template-columns: 60px 1fr 1fr; gap: 8px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--border); margin-bottom: 5px; font-size: 10.5px; align-items: center; }
+.dd-history-game .num { font-family: 'Cinzel'; color: var(--gold); font-weight: 700; }
+.dd-history-picks { display: flex; flex-wrap: wrap; gap: 3px; }
+.dd-history-avatar { width: 20px; height: 20px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel'; font-weight: 700; font-size: 7px; color: rgba(255,255,255,0.9); }
+.dd-history-picks.winner { outline: 1px solid var(--gold); padding: 2px; }
+</style>
+
+<div id="dota-draft-root">
+  <div class="dd-header">
+    <p class="dd-title">DRAFT HALL &middot; Dota 2</p>
+    <div class="dd-tabs">
+      <button class="dd-tab active" data-tab="db">База героев</button>
+      <button class="dd-tab" data-tab="draft">Captains Mode</button>
+    </div>
+  </div>
+  <div class="dd-body" id="dd-body"></div>
+</div>
+
+<script>
+(function () {
+  const ROOT = document.getElementById('dota-draft-root');
+  const BODY = document.getElementById('dd-body');
+  const IMG_BASE = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/';
+
+  const ATTR_META = {
+    str: { label: 'Сила', color: '#c0524a', hue: 355 },
+    agi: { label: 'Ловкость', color: '#4a9e6a', hue: 130 },
+    int: { label: 'Интеллект', color: '#4a7fc0', hue: 215 },
+    all: { label: 'Универсал', color: '#c9a227', hue: 45 }
+  };
+
+  // Hero portraits are generated locally (colour + initials) instead of hotlinked from an
+  // external CDN, because the artifact sandbox blocks cross-origin image/fetch requests.
+  function hashOf(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return h;
+  }
+  function heroColor(h) {
+    const base = ATTR_META[h.attr].hue;
+    const hash = hashOf(h.name);
+    const hue = (base + (hash % 22) - 11 + 360) % 360;
+    const sat = 42 + (hash % 18);
+    const light = 26 + (hash % 12);
+    return `hsl(${hue} ${sat}% ${light}%)`;
+  }
+  function heroInitials(name) {
+    const stop = new Set(['of', 'the']);
+    const parts = name.replace(/-/g, ' ').split(' ').filter(w => w && !stop.has(w.toLowerCase()));
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return parts.slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  }
+  function heroAvatar(h, cls) {
+    return `<div class="${cls} dd-avatar" style="background:${heroColor(h)}"><span class="dd-avatar-label">${heroInitials(h.name)}</span><img src="${h.img}" alt="${h.name}" loading="lazy" onerror="this.style.display='none'"></div>`;
+  }
+
+  // Static hero roster (127 heroes, attributes per current live game).
+  const HERO_DATA = [
+    ['Axe','str','axe'],['Earthshaker','str','earthshaker'],['Pudge','str','pudge'],['Sven','str','sven'],
+    ['Tidehunter','str','tidehunter'],['Slardar','str','slardar'],['Tiny','str','tiny'],['Clockwerk','str','rattletrap'],
+    ['Night Stalker','str','night_stalker'],['Doom','str','doom_bringer'],['Kunkka','str','kunkka'],['Wraith King','str','skeleton_king'],
+    ['Huskar','str','huskar'],['Omniknight','str','omniknight'],['Dragon Knight','str','dragon_knight'],['Alchemist','str','alchemist'],
+    ['Lifestealer','str','life_stealer'],['Spirit Breaker','str','spirit_breaker'],['Lycan','str','lycan'],['Treant Protector','str','treant'],
+    ['Ogre Magi','str','ogre_magi'],['Chaos Knight','str','chaos_knight'],['Undying','str','undying'],['Centaur Warrunner','str','centaur'],
+    ['Timbersaw','str','shredder'],['Tusk','str','tusk'],['Bristleback','str','bristleback'],['Elder Titan','str','elder_titan'],
+    ['Earth Spirit','str','earth_spirit'],['Legion Commander','str','legion_commander'],['Phoenix','str','phoenix'],['Underlord','str','abyssal_underlord'],
+    ['Mars','str','mars'],['Dawnbreaker','str','dawnbreaker'],['Primal Beast','str','primal_beast'],['Largo','str','largo'],
+
+    ['Anti-Mage','agi','antimage'],['Drow Ranger','agi','drow_ranger'],['Mirana','agi','mirana'],['Morphling','agi','morphling'],
+    ['Razor','agi','razor'],['Vengeful Spirit','agi','vengefulspirit'],['Faceless Void','agi','faceless_void'],['Viper','agi','viper'],
+    ['Sniper','agi','sniper'],['Shadow Fiend','agi','nevermore'],['Weaver','agi','weaver'],['Spectre','agi','spectre'],
+    ['Juggernaut','agi','juggernaut'],['Bloodseeker','agi','bloodseeker'],['Riki','agi','riki'],['Broodmother','agi','broodmother'],
+    ['Ursa','agi','ursa'],['Bounty Hunter','agi','bounty_hunter'],['Clinkz','agi','clinkz'],['Lone Druid','agi','lone_druid'],
+    ['Phantom Lancer','agi','phantom_lancer'],['Gyrocopter','agi','gyrocopter'],['Phantom Assassin','agi','phantom_assassin'],['Luna','agi','luna'],
+    ['Templar Assassin','agi','templar_assassin'],['Naga Siren','agi','naga_siren'],['Meepo','agi','meepo'],['Slark','agi','slark'],
+    ['Medusa','agi','medusa'],['Troll Warlord','agi','troll_warlord'],['Ember Spirit','agi','ember_spirit'],['Terrorblade','agi','terrorblade'],
+    ['Monkey King','agi','monkey_king'],['Hoodwink','agi','hoodwink'],['Kez','agi','kez'],
+
+    ['Crystal Maiden','int','crystal_maiden'],['Lich','int','lich'],['Lina','int','lina'],['Lion','int','lion'],
+    ['Necrophos','int','necrolyte'],['Puck','int','puck'],['Shadow Shaman','int','shadow_shaman'],['Storm Spirit','int','storm_spirit'],
+    ['Witch Doctor','int','witch_doctor'],['Zeus','int','zuus'],['Dark Seer','int','dark_seer'],['Pugna','int','pugna'],
+    ['Enchantress','int','enchantress'],['Leshrac','int','leshrac'],['Tinker','int','tinker'],['Ancient Apparition','int','ancient_apparition'],
+    ['Chen','int','chen'],['Queen of Pain','int','queenofpain'],['Jakiro','int','jakiro'],['Warlock','int','warlock'],
+    ['Silencer','int','silencer'],['Invoker','int','invoker'],['Outworld Destroyer','int','obsidian_destroyer'],['Shadow Demon','int','shadow_demon'],
+    ['Rubick','int','rubick'],['Disruptor','int','disruptor'],['Keeper of the Light','int','keeper_of_the_light'],['Skywrath Mage','int','skywrath_mage'],
+    ['Oracle','int','oracle'],['Winter Wyvern','int','winter_wyvern'],['Dark Willow','int','dark_willow'],['Grimstroke','int','grimstroke'],
+    ['Muerta','int','muerta'],['Ringmaster','int','ringmaster'],
+
+    ['Dazzle','all','dazzle'],['Sand King','all','sand_king'],['Windranger','all','windrunner'],['Enigma','all','enigma'],
+    ['Venomancer','all','venomancer'],["Nature's Prophet",'all','furion'],['Beastmaster','all','beastmaster'],['Batrider','all','batrider'],
+    ['Death Prophet','all','death_prophet'],['Bane','all','bane'],['Brewmaster','all','brewmaster'],['Io','all','wisp'],
+    ['Nyx Assassin','all','nyx_assassin'],['Visage','all','visage'],['Magnus','all','magnataur'],['Abaddon','all','abaddon'],
+    ['Techies','all','techies'],['Arc Warden','all','arc_warden'],['Pangolier','all','pangolier'],['Snapfire','all','snapfire'],
+    ['Void Spirit','all','void_spirit'],['Marci','all','marci']
+  ];
+
+  // 7.34 Captains Mode order — 14 bans / 10 picks, 24 steps total
+  const SEQUENCE = [
+    ['fp','ban'],['fp','ban'],['sp','ban'],['sp','ban'],['fp','ban'],['sp','ban'],['sp','ban'],
+    ['fp','pick'],['sp','pick'],
+    ['fp','ban'],['fp','ban'],['sp','ban'],
+    ['sp','pick'],['fp','pick'],['fp','pick'],['sp','pick'],['sp','pick'],['fp','pick'],
+    ['fp','ban'],['sp','ban'],['fp','ban'],['sp','ban'],
+    ['fp','pick'],['sp','pick']
+  ].map(([side, type], i) => ({ n: i + 1, side, type }));
+
+  const RESERVE_TOTAL = 130; // seconds, per official rules
+  const FORMATS = { bo1: 1, bo3: 2, bo5: 3, bo7: 4 }; // format -> wins needed
+
+  let allHeroes = [];
+  let activeTab = 'db';
+  let dbFilter = 'all';
+  let dbSearch = '';
+
+  // per-browser (local) state
+  let roomCode = '';
+  let myRole = null; // 'fp' | 'sp' | 'observer'
+  let joined = false;
+  let room = null;
+  let pollTimer = null;
+  let tickTimer = null;
+  let lobbyFormat = 'bo3';
+  let lobbyFearless = false;
+
+  function loadHeroes() {
+    allHeroes = HERO_DATA
+      .map(([name, attr, slug], i) => ({ id: i + 1, name, attr, img: IMG_BASE + slug + '.png' }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    render();
+  }
+
+  function freshGameFields() {
+    return { actions: [], stepStartedAt: null, fpReserve: RESERVE_TOTAL, spReserve: RESERVE_TOTAL };
+  }
+
+  function initRoomState(format, fearless) {
+    return {
+      format: format || 'bo1',
+      fearless: !!fearless,
+      gameNumber: 1,
+      fpWins: 0,
+      spWins: 0,
+      seriesPicked: [],  // hero ids locked for the rest of the series (fearless mode)
+      history: [],        // completed games: { gameNumber, fpPicks, spPicks, winner }
+      fpReady: false,
+      spReady: false,
+      ...freshGameFields(),
+      updatedAt: Date.now()
+    };
+  }
+
+  // --- Storage backend ---
+  // This standalone (hosted) build uses a free Firebase Realtime Database instead of the
+  // Claude-artifact-only window.storage API, so the draft can sync between two real devices.
+  //   1. Go to https://console.firebase.google.com -> Add project (free, no card needed)
+  //   2. In the left menu: Build -> Realtime Database -> Create Database -> start in TEST MODE
+  //   3. Copy the database URL shown at the top of that page
+  //      (looks like https://your-project-id-default-rtdb.europe-west1.firebasedatabase.app)
+  //   4. Paste it below, replacing the placeholder text
+  const FIREBASE_DB_URL = 'https://vpadlucup-default-rtdb.europe-west1.firebasedatabase.app';
+  const FIREBASE_CONFIGURED = !FIREBASE_DB_URL.includes('PASTE_YOUR');
+
+  async function readRoom(code) {
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/rooms/${code}.json`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  async function writeRoom(code, obj) {
+    obj.updatedAt = Date.now();
+    try {
+      await fetch(`${FIREBASE_DB_URL}/rooms/${code}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(obj)
+      });
+    } catch (e) { /* best effort */ }
+  }
+  async function pollRoom() {
+    if (!joined || !roomCode) return;
+    const r = await readRoom(roomCode);
+    if (r) { room = r; if (activeTab === 'draft') render(); }
+  }
+
+  function heroById(id) { return allHeroes.find(h => h.id === id); }
+  function currentStep(r) {
+    if (!r) return null;
+    const idx = r.actions.length;
+    return idx < 24 ? SEQUENCE[idx] : null;
+  }
+  function bannedIds(r) {
+    const s = [];
+    r.actions.forEach((a, i) => { if (SEQUENCE[i].type === 'ban') s.push(a.heroId); });
+    return s;
+  }
+  function pickedIds(r, side) {
+    const s = [];
+    r.actions.forEach((a, i) => { if (SEQUENCE[i].type === 'pick' && SEQUENCE[i].side === side) s.push(a.heroId); });
+    return s;
+  }
+  function standardTime(stepIdx) { return stepIdx === 0 ? 15 : 30; }
+  function winsNeeded(r) { return FORMATS[r.format] || 1; }
+  function seriesOver(r) { return r.fpWins >= winsNeeded(r) || r.spWins >= winsNeeded(r); }
+
+  async function autoAdvanceIfTimedOut() {
+    if (!joined || !roomCode) return;
+    const r = await readRoom(roomCode);
+    if (!r || !r.fpReady || !r.spReady || !r.stepStartedAt) return;
+    const step = currentStep(r);
+    if (!step) return;
+    const idx = r.actions.length;
+    const reserve = step.side === 'fp' ? r.fpReserve : r.spReserve;
+    const allowed = standardTime(idx) + reserve;
+    const elapsed = (Date.now() - r.stepStartedAt) / 1000;
+    if (elapsed < allowed) return;
+
+    const locked = new Set([...bannedIds(r), ...pickedIds(r, 'fp'), ...pickedIds(r, 'sp'), ...(r.fearless ? r.seriesPicked : [])]);
+    let heroId = null;
+    if (step.type === 'pick') {
+      const pool = allHeroes.filter(h => !locked.has(h.id));
+      if (pool.length) heroId = pool[Math.floor(Math.random() * pool.length)].id;
+    }
+    r.actions.push({ heroId });
+    if (step.side === 'fp') r.fpReserve = 0; else r.spReserve = 0;
+    r.stepStartedAt = Date.now();
+    await writeRoom(roomCode, r);
+    room = r;
+  }
+
+  function startTimers() {
+    stopTimers();
+    pollTimer = setInterval(pollRoom, 1400);
+    tickTimer = setInterval(async () => {
+      await autoAdvanceIfTimedOut();
+      if (activeTab === 'draft') render();
+    }, 1000);
+  }
+  function stopTimers() {
+    if (pollTimer) clearInterval(pollTimer);
+    if (tickTimer) clearInterval(tickTimer);
+    pollTimer = null; tickTimer = null;
+  }
+
+  async function joinRoom() {
+    const codeInput = document.getElementById('dd-room-code');
+    const code = (codeInput.value || '').trim().toUpperCase();
+    if (!code || !myRole) return;
+    roomCode = code;
+    let r = await readRoom(code);
+    if (!r) r = initRoomState(lobbyFormat, lobbyFearless);
+    if (myRole === 'fp') r.fpReady = true;
+    if (myRole === 'sp') r.spReady = true;
+    if (r.fpReady && r.spReady && !r.stepStartedAt) r.stepStartedAt = Date.now();
+    await writeRoom(code, r);
+    room = r;
+    joined = true;
+    startTimers();
+    render();
+  }
+
+  async function pickHero(heroId) {
+    const r = await readRoom(roomCode) || room;
+    const step = currentStep(r);
+    if (!step || step.side !== myRole) return;
+    const locked = new Set([...bannedIds(r), ...pickedIds(r, 'fp'), ...pickedIds(r, 'sp'), ...(r.fearless ? r.seriesPicked : [])]);
+    if (locked.has(heroId)) return;
+    const idx = r.actions.length;
+    const reserve = step.side === 'fp' ? r.fpReserve : r.spReserve;
+    const elapsed = (Date.now() - r.stepStartedAt) / 1000;
+    const overflow = Math.max(0, elapsed - standardTime(idx));
+    const used = Math.min(overflow, reserve);
+    if (step.side === 'fp') r.fpReserve = Math.max(0, r.fpReserve - used);
+    else r.spReserve = Math.max(0, r.spReserve - used);
+    r.actions.push({ heroId });
+    r.stepStartedAt = Date.now();
+    await writeRoom(roomCode, r);
+    room = r;
+    render();
+  }
+
+  // Called from the "Игра окончена" panel once the draft for the current game is complete.
+  async function finishGame(winnerSide) {
+    const r = await readRoom(roomCode) || room;
+    if (currentStep(r)) return; // draft not actually finished yet
+    const fpPicks = pickedIds(r, 'fp');
+    const spPicks = pickedIds(r, 'sp');
+    r.history.push({ gameNumber: r.gameNumber, fpPicks, spPicks, winner: winnerSide });
+    if (winnerSide === 'fp') r.fpWins++; else r.spWins++;
+    if (r.fearless) {
+      const combined = new Set([...r.seriesPicked, ...fpPicks, ...spPicks]);
+      r.seriesPicked = [...combined];
+    }
+    if (!seriesOver(r)) {
+      r.gameNumber++;
+      Object.assign(r, freshGameFields());
+      r.stepStartedAt = Date.now(); // both captains already ready, next game starts immediately
+    }
+    await writeRoom(roomCode, r);
+    room = r;
+    render();
+  }
+
+  async function resetRoom() {
+    if (!roomCode) return;
+    const prev = room || {};
+    const r = initRoomState(prev.format, prev.fearless);
+    await writeRoom(roomCode, r);
+    room = r;
+    render();
+  }
+
+  function leaveRoom() {
+    joined = false;
+    myRole = null;
+    room = null;
+    stopTimers();
+    render();
+  }
+
+  // ---------- render ----------
+  function render() {
+    ROOT.querySelectorAll('.dd-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === activeTab));
+    BODY.innerHTML = activeTab === 'db' ? renderDb() : renderDraft();
+    attachHandlers();
+  }
+
+  function renderDb() {
+    if (!allHeroes.length) return `<div class="dd-empty-state">Загрузка героев&hellip;</div>`;
+    const filtered = allHeroes.filter(h =>
+      (dbFilter === 'all' || h.attr === dbFilter) &&
+      h.name.toLowerCase().includes(dbSearch.toLowerCase())
+    );
+    const attrKeys = ['str', 'agi', 'int', 'all'];
+    return `
+      <div class="dd-controls">
+        <input class="dd-search" id="dd-search" placeholder="Поиск героя&hellip;" value="${dbSearch}">
+        <button class="dd-filter-btn ${dbFilter==='all'?'active':''}" data-attr="all">Все</button>
+        ${attrKeys.map(k => `<button class="dd-filter-btn ${dbFilter===k?'active':''}" data-attr="${k}">${ATTR_META[k].label}</button>`).join('')}
+        <span class="dd-count">${filtered.length} героев</span>
+      </div>
+      <div class="dd-hero-grid">
+        ${filtered.map(h => `
+          <div class="dd-hero-card">
+            ${heroAvatar(h, 'dd-hero-img')}
+            <div class="dd-hero-name">${h.name}</div>
+            <div class="dd-hero-attr"><span class="dd-dot" style="background:${ATTR_META[h.attr].color}"></span>${ATTR_META[h.attr].label}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function fmtTime(sec) {
+    sec = Math.max(0, Math.ceil(sec));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}с`;
+  }
+
+  function renderDraft() {
+    if (!allHeroes.length) return `<div class="dd-empty-state">Загрузка героев&hellip;</div>`;
+    if (!FIREBASE_CONFIGURED) {
+      return `<div class="dd-error">Комната драфта ещё не настроена: откройте файл в редакторе и вставьте адрес вашей Firebase Realtime Database в константу <code>FIREBASE_DB_URL</code> в начале скрипта (инструкция — в комментарии рядом с этой строкой).</div>`;
+    }
+
+    if (!joined) {
+      return `
+        <div class="dd-lobby">
+          <h3>Комната драфта</h3>
+          <p>Придумайте код комнаты и отправьте его остальным участникам — все вводят тот же код на своих устройствах. Капитаны занимают Radiant/Dire, все остальные могут просто наблюдать.</p>
+          <div class="dd-field">
+            <label class="dd-label">Код комнаты</label>
+            <input class="dd-input" id="dd-room-code" placeholder="Например, TI2026" maxlength="12">
+          </div>
+          <div class="dd-field">
+            <label class="dd-label">Формат серии (если комната ещё не создана)</label>
+            <div class="dd-format-row">
+              ${Object.keys(FORMATS).map(f => `<button class="dd-format-btn ${lobbyFormat===f?'active':''}" data-format="${f}">${f.toUpperCase()}</button>`).join('')}
+            </div>
+            <div class="dd-note">Если по этому коду комната уже создана, формат и режим возьмутся из неё — эти кнопки не повлияют.</div>
+          </div>
+          <div class="dd-field">
+            <label class="dd-toggle-row">
+              <input type="checkbox" id="dd-fearless-toggle" ${lobbyFearless ? 'checked' : ''}>
+              <span>
+                <span class="dd-toggle-text">Fearless Draft</span>
+                <span class="dd-toggle-sub">Герои, выбранные в прошлых играх серии, недоступны для пика в следующих (баны каждую игру обычные)</span>
+              </span>
+            </label>
+          </div>
+          <div class="dd-field">
+            <label class="dd-label">Ваша роль</label>
+            <div class="dd-role-row">
+              <button class="dd-role-btn fp ${myRole==='fp'?'active':''}" data-role="fp">Radiant (First Pick)</button>
+              <button class="dd-role-btn sp ${myRole==='sp'?'active':''}" data-role="sp">Dire (Second Pick)</button>
+              <button class="dd-role-btn obs ${myRole==='observer'?'active':''}" data-role="observer">Наблюдатель</button>
+            </div>
+          </div>
+          <button class="dd-btn-primary" id="dd-join" ${myRole ? '' : 'disabled'}>Войти в комнату</button>
+        </div>
+      `;
+    }
+
+    const r = room || initRoomState(lobbyFormat, lobbyFearless);
+    const bothReady = r.fpReady && r.spReady;
+    const step = currentStep(r);
+    const banned = bannedIds(r);
+    const fpPicks = pickedIds(r, 'fp');
+    const spPicks = pickedIds(r, 'sp');
+    const gameOver = bothReady && !step;
+    const over = seriesOver(r);
+
+    const seriesBar = `
+      <div class="dd-series-bar">
+        <div class="dd-series-left">
+          <span>Игра ${r.gameNumber} · ${r.format.toUpperCase()}</span>
+          <span class="dd-score"><span class="fp">${r.fpWins}</span> : <span class="sp">${r.spWins}</span></span>
+          ${r.fearless ? '<span class="dd-fearless-badge">FEARLESS DRAFT</span>' : ''}
+        </div>
+        <div><button class="dd-btn-secondary" id="dd-leave">Выйти</button></div>
+      </div>
+    `;
+
+    if (over) {
+      const winnerText = r.fpWins > r.spWins ? 'Radiant' : 'Dire';
+      return `
+        ${seriesBar}
+        <div class="dd-series-over">
+          <h4>Серия завершена — победили ${winnerText}!</h4>
+          <p>Счёт ${r.fpWins}:${r.spWins} (${r.format.toUpperCase()})</p>
+          <button class="dd-btn-secondary" id="dd-reset">Новая серия (сброс)</button>
+        </div>
+        ${renderHistory(r)}
+      `;
+    }
+
+    if (!bothReady) {
+      return `
+        ${seriesBar}
+        <div class="dd-status-bar"><span class="dd-wait-turn">Ожидание капитанов&hellip; (Radiant: ${r.fpReady?'в комнате':'—'}, Dire: ${r.spReady?'в комнате':'—'})</span></div>
+      `;
+    }
+
+    if (gameOver) {
+      return `
+        ${seriesBar}
+        <div class="dd-gameover">
+          <h4>Игра ${r.gameNumber} окончена</h4>
+          <p>Отметьте победителя, чтобы засчитать результат и начать следующую игру${r.fearless ? ' (пики этой игры блокируются в Fearless Draft)' : ''}.</p>
+          <div class="dd-winner-row">
+            <button class="dd-winner-btn fp" data-winner="fp">Победила Radiant</button>
+            <button class="dd-winner-btn sp" data-winner="sp">Победила Dire</button>
+          </div>
+        </div>
+        <div class="dd-draft-layout">
+          ${teamPanel('fp', fpPicks, 'RADIANT · First Pick', r, banned)}
+          <div></div>
+          ${teamPanel('sp', spPicks, 'DIRE · Second Pick', r, banned)}
+        </div>
+        ${renderHistory(r)}
+      `;
+    }
+
+    const isMyTurn = step.side === myRole;
+    const idx = r.actions.length;
+    const reserve = step.side === 'fp' ? r.fpReserve : r.spReserve;
+    const elapsed = (Date.now() - r.stepStartedAt) / 1000;
+    const std = standardTime(idx);
+    const inReserve = elapsed > std;
+    const remaining = inReserve ? Math.max(0, std + reserve - elapsed) : Math.max(0, std - elapsed);
+    const timerClass = inReserve ? 'reserve' : (remaining <= 5 ? 'low' : '');
+    const statusHtml = `<div class="dd-status-bar">
+        <div class="dd-status-left">
+          <span class="dd-badge ${step.type}">${step.type === 'ban' ? 'БАН' : 'ПИК'} · шаг ${step.n}/24</span>
+          <span class="${isMyTurn ? 'dd-your-turn' : 'dd-wait-turn'}">${myRole === 'observer' ? (step.side === 'fp' ? 'Ход Radiant' : 'Ход Dire') : (isMyTurn ? 'Ваш ход' : (step.side === 'fp' ? 'Ход Radiant' : 'Ход Dire'))}</span>
+          <span class="dd-timer ${timerClass}">${fmtTime(remaining)}${inReserve ? ' (резерв)' : ''}</span>
+        </div>
+        <div><button class="dd-btn-secondary" id="dd-reset">Сброс</button></div>
+      </div>`;
+
+    const timeline = `<div class="dd-timeline">${SEQUENCE.map((s, i) => {
+      const done = i < r.actions.length;
+      const cur = s.n === step.n;
+      return `<div class="dd-tstep ${s.side} ${done ? 'done' : ''} ${cur ? 'current' : ''}" title="Шаг ${s.n}: ${s.side==='fp'?'Radiant':'Dire'} ${s.type==='ban'?'бан':'пик'}">${s.type==='ban'?'✕':'✓'}</div>`;
+    }).join('')}</div>`;
+
+    const takenSet = new Set([...banned, ...fpPicks, ...spPicks]);
+    const seriesLocked = new Set(r.fearless ? r.seriesPicked : []);
+    const isMyTurnNow = step.side === myRole;
+    const heroGrid = `
+      <div class="dd-hero-pick-grid">
+        ${allHeroes.map(h => {
+          const lockedBySeries = seriesLocked.has(h.id) && !takenSet.has(h.id);
+          const disabled = !isMyTurnNow || takenSet.has(h.id) || lockedBySeries;
+          return `
+          <div class="dd-pick-card ${disabled ? 'disabled' : ''} ${lockedBySeries ? 'fearless-locked' : ''}" data-hero-id="${h.id}" title="${lockedBySeries ? 'Уже выбран ранее в этой серии (Fearless Draft)' : h.name}">
+            ${heroAvatar(h, 'dd-hero-img')}
+            <div class="dd-hero-name">${h.name}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+
+    const roleLabel = myRole === 'fp' ? 'Radiant (First Pick)' : myRole === 'sp' ? 'Dire (Second Pick)' : 'наблюдатель';
+
+    return `
+      ${seriesBar}
+      ${statusHtml}
+      ${timeline}
+      <div class="dd-draft-layout">
+        ${teamPanel('fp', fpPicks, 'RADIANT · First Pick', r, banned)}
+        <div>${heroGrid}</div>
+        ${teamPanel('sp', spPicks, 'DIRE · Second Pick', r, banned)}
+      </div>
+      <div class="dd-footer-note">Комната: <b>${roomCode}</b> · Вы — ${roleLabel}. Таймер: 15 сек на первый бан, 30 сек на остальные шаги, плюс резерв 130 сек на сторону за игру. ${r.fearless ? 'Режим Fearless Draft: пикнутые в прошлых играх серии герои недоступны для пика.' : ''}</div>
+    `;
+  }
+
+  function teamPanel(side, picks, label, r, banned) {
+    const banSlots = SEQUENCE.filter(s => s.type === 'ban' && s.side === side).length;
+    const sideBans = [];
+    r.actions.forEach((a, i) => { if (SEQUENCE[i].type === 'ban' && SEQUENCE[i].side === side) sideBans.push(a.heroId); });
+    const reserve = side === 'fp' ? r.fpReserve : r.spReserve;
+    return `
+      <div class="dd-team-panel ${side}">
+        <div class="dd-team-title-row">
+          <div class="dd-team-title">${label}</div>
+          <div class="dd-team-reserve">резерв ${fmtTime(reserve)}</div>
+        </div>
+        <div class="dd-slot-label">Пики (${picks.length}/5)</div>
+        <div class="dd-picks-row">
+          ${Array.from({length:5}).map((_,i) => {
+            const id = picks[i];
+            const h = id ? heroById(id) : null;
+            return h ? `<div class="dd-slot">${heroAvatar(h, 'dd-slot-avatar')}<span>${h.name}</span></div>` : `<div class="dd-slot empty">&mdash;</div>`;
+          }).join('')}
+        </div>
+        <div class="dd-slot-label">Баны (${sideBans.length}/${banSlots})</div>
+        <div class="dd-bans-row">
+          ${Array.from({length:banSlots}).map((_,i) => {
+            const id = sideBans[i];
+            const h = id ? heroById(id) : null;
+            return h ? `<div class="dd-slot ban-slot" title="${h.name}">${heroAvatar(h, 'dd-slot-avatar')}</div>` : `<div class="dd-slot ban-slot empty">&mdash;</div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderHistory(r) {
+    if (!r.history.length) return '';
+    return `
+      <div class="dd-history">
+        <h5>История серии</h5>
+        ${r.history.map(g => `
+          <div class="dd-history-game">
+            <div class="num">Игра ${g.gameNumber}</div>
+            <div class="dd-history-picks ${g.winner==='fp'?'winner':''}">${g.fpPicks.map(id => { const h = heroById(id); return h ? heroAvatar(h, 'dd-history-avatar') : ''; }).join('')}</div>
+            <div class="dd-history-picks ${g.winner==='sp'?'winner':''}">${g.spPicks.map(id => { const h = heroById(id); return h ? heroAvatar(h, 'dd-history-avatar') : ''; }).join('')}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function attachHandlers() {
+    ROOT.querySelectorAll('.dd-tab').forEach(t => t.onclick = () => { activeTab = t.dataset.tab; render(); });
+
+    const search = document.getElementById('dd-search');
+    if (search) {
+      search.oninput = (e) => {
+        dbSearch = e.target.value;
+        render();
+        const el = document.getElementById('dd-search');
+        el.focus();
+        el.setSelectionRange(dbSearch.length, dbSearch.length);
+      };
+    }
+    ROOT.querySelectorAll('.dd-filter-btn').forEach(b => b.onclick = () => { dbFilter = b.dataset.attr; render(); });
+
+    ROOT.querySelectorAll('.dd-role-btn').forEach(b => b.onclick = () => { myRole = b.dataset.role; render(); });
+    ROOT.querySelectorAll('.dd-format-btn').forEach(b => b.onclick = () => { lobbyFormat = b.dataset.format; render(); });
+    const fearlessToggle = document.getElementById('dd-fearless-toggle');
+    if (fearlessToggle) fearlessToggle.onchange = (e) => { lobbyFearless = e.target.checked; };
+
+    const joinBtn = document.getElementById('dd-join');
+    if (joinBtn) joinBtn.onclick = joinRoom;
+
+    const leaveBtn = document.getElementById('dd-leave');
+    if (leaveBtn) leaveBtn.onclick = leaveRoom;
+
+    const resetBtn = document.getElementById('dd-reset');
+    if (resetBtn) resetBtn.onclick = resetRoom;
+
+    ROOT.querySelectorAll('.dd-winner-btn').forEach(b => b.onclick = () => finishGame(b.dataset.winner));
+
+    ROOT.querySelectorAll('.dd-pick-card:not(.disabled)').forEach(c => c.onclick = () => pickHero(parseInt(c.dataset.heroId, 10)));
+  }
+
+  loadHeroes();
+})();
+</script>
