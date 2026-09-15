@@ -85,6 +85,13 @@
 .dd-filter-btn.active { color: var(--bg); background: var(--gold); border-color: var(--gold); }
 .dd-count { font-size: 12px; color: var(--text-dim); margin-left: auto; }
 
+.dd-attr-section { margin-bottom: 18px; }
+.dd-attr-heading {
+  display: flex; align-items: center; gap: 8px; font-family: 'Cinzel'; font-weight: 700; font-size: 12.5px;
+  letter-spacing: .5px; margin-bottom: 9px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.dd-attr-count { margin-left: auto; font-family: 'Inter'; font-weight: 600; font-size: 11px; color: var(--text-dim); }
+
 .dd-hero-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
@@ -234,9 +241,9 @@
 .dd-slot.ban-slot .dd-slot-avatar { width: 100%; height: 100%; filter: grayscale(1) brightness(.55); }
 .dd-slot.empty { color: var(--text-dim); justify-content: center; }
 
+.dd-hero-pick-scroll { max-height: 480px; overflow-y: auto; padding-right: 4px; }
 .dd-hero-pick-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 7px;
-  max-height: 480px; overflow-y: auto; padding-right: 4px;
 }
 .dd-pick-card {
   background: var(--panel); border: 1px solid var(--border); cursor: pointer; overflow: hidden; position: relative;
@@ -307,6 +314,12 @@
     int: { label: 'Интеллект', color: '#4a7fc0', hue: 215 },
     all: { label: 'Универсал', color: '#c9a227', hue: 45 }
   };
+  const ATTR_ORDER = ['str', 'agi', 'int', 'all'];
+  function groupByAttr(list) {
+    return ATTR_ORDER
+      .map(attr => ({ attr, heroes: list.filter(h => h.attr === attr) }))
+      .filter(g => g.heroes.length > 0);
+  }
 
   // Hero portraits load from Valve's CDN; if a particular image fails, the colour+initials
   // tile underneath stays visible instead (see onerror on the <img> below).
@@ -711,8 +724,13 @@
     const idx = r.actions.length;
     const reserve = step.side === 'fp' ? r.fpReserve : r.spReserve;
     const allowed = standardTime(idx) + reserve;
+    // Everyone's client checks this every second so the draft still advances if the active
+    // captain's own browser drops. But that means two clients could race to record the timeout
+    // right as the real player clicks. Give the acting player's own device zero grace (it's just
+    // timing itself out), and everyone else a few extra seconds so a real, in-flight pick wins.
+    const grace = (step.side === myRole) ? 0 : 3;
     const elapsed = (Date.now() - r.stepStartedAt) / 1000;
-    if (elapsed < allowed) return;
+    if (elapsed < allowed + grace) return;
 
     const locked = new Set([...bannedIds(r), ...pickedIds(r, 'fp'), ...pickedIds(r, 'sp'), ...(r.fearless ? (r.seriesPicked || []) : [])]);
     let heroId = null;
@@ -720,10 +738,17 @@
       const pool = allHeroes.filter(h => !locked.has(h.id));
       if (pool.length) heroId = pool[Math.floor(Math.random() * pool.length)].id;
     }
-    r.actions.push({ heroId });
-    if (step.side === 'fp') r.fpReserve = 0; else r.spReserve = 0;
-    r.stepStartedAt = Date.now();
-    try { await writeLobby(lobbyId, r); room = r; } catch (e) { /* will retry next tick */ }
+
+    // Re-read right before writing to shrink the race window further: if the real player's pick
+    // already landed while we were computing this, actions.length will have moved on — bail out.
+    let r2;
+    try { r2 = await readLobby(lobbyId); } catch (e) { r2 = r; }
+    if (!r2 || r2.actions.length !== idx) return;
+
+    r2.actions.push({ heroId });
+    if (step.side === 'fp') r2.fpReserve = 0; else r2.spReserve = 0;
+    r2.stepStartedAt = Date.now();
+    try { await writeLobby(lobbyId, r2); room = r2; } catch (e) { /* will retry next tick */ }
   }
 
   function startTimers() {
@@ -820,7 +845,7 @@
     // Re-rendering replaces the whole body via innerHTML, which would otherwise snap any
     // scrollable list (like the hero pick grid) back to the top, and any focused text input's
     // cursor to the end, on every timer tick/poll — so save and restore both here.
-    const scrollable = BODY.querySelector('.dd-hero-pick-grid');
+    const scrollable = BODY.querySelector('.dd-hero-pick-scroll');
     const savedScroll = scrollable ? scrollable.scrollTop : null;
     const active = document.activeElement;
     const activeId = (active && BODY.contains(active) && active.id) ? active.id : null;
@@ -831,7 +856,7 @@
     attachHandlers();
 
     if (savedScroll !== null) {
-      const restored = BODY.querySelector('.dd-hero-pick-grid');
+      const restored = BODY.querySelector('.dd-hero-pick-scroll');
       if (restored) restored.scrollTop = savedScroll;
     }
     if (activeId) {
@@ -852,6 +877,7 @@
       h.name.toLowerCase().includes(dbSearch.toLowerCase())
     );
     const attrKeys = ['str', 'agi', 'int', 'all'];
+    const groups = groupByAttr(filtered);
     return `
       <div class="dd-controls">
         <input class="dd-search" id="dd-search" placeholder="Поиск героя&hellip;" value="${dbSearch}">
@@ -859,16 +885,22 @@
         ${attrKeys.map(k => `<button class="dd-filter-btn ${dbFilter===k?'active':''}" data-attr="${k}">${ATTR_META[k].label}</button>`).join('')}
         <span class="dd-count">${filtered.length} героев</span>
       </div>
-      <div class="dd-hero-grid">
-        ${filtered.map(h => `
-          <div class="dd-hero-card">
-            ${heroAvatar(h, 'dd-hero-img')}
-            <div class="dd-hero-name">${h.name}</div>
-            <div class="dd-hero-attr"><span class="dd-dot" style="background:${ATTR_META[h.attr].color}"></span>${ATTR_META[h.attr].label}</div>
+      ${groups.length === 0 ? `<div class="dd-empty-state">Ничего не найдено</div>` : groups.map(g => `
+        <div class="dd-attr-section">
+          <div class="dd-attr-heading" style="color:${ATTR_META[g.attr].color}">
+            <span class="dd-dot" style="background:${ATTR_META[g.attr].color}"></span>${ATTR_META[g.attr].label}
+            <span class="dd-attr-count">${g.heroes.length}</span>
           </div>
-        `).join('')}
-      </div>
-    `;
+          <div class="dd-hero-grid">
+            ${g.heroes.map(h => `
+              <div class="dd-hero-card">
+                ${heroAvatar(h, 'dd-hero-img')}
+                <div class="dd-hero-name">${h.name}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}    `;
   }
 
   function fmtTime(sec) {
@@ -1094,19 +1126,30 @@
     const seriesLocked = new Set(r.fearless ? (r.seriesPicked || []) : []);
     const isMyTurnNow = step.side === myRole;
     const visibleHeroes = allHeroes.filter(h => h.name.toLowerCase().includes(draftHeroSearch.toLowerCase()));
+    const pickCard = (h) => {
+      const lockedBySeries = seriesLocked.has(h.id) && !takenSet.has(h.id);
+      const disabled = !isMyTurnNow || takenSet.has(h.id) || lockedBySeries;
+      return `
+        <div class="dd-pick-card ${disabled ? 'disabled' : ''} ${lockedBySeries ? 'fearless-locked' : ''}" data-hero-id="${h.id}" title="${lockedBySeries ? 'Уже выбран ранее в этой серии (Fearless Draft)' : h.name}">
+          ${heroAvatar(h, 'dd-hero-img')}
+          <div class="dd-hero-name">${h.name}</div>
+        </div>`;
+    };
+    const pickGroups = groupByAttr(visibleHeroes);
     const heroGrid = `
       <input class="dd-search" id="dd-draft-search" placeholder="Поиск героя&hellip;" value="${esc(draftHeroSearch)}" style="width:100%; margin-bottom:8px;">
-      <div class="dd-hero-pick-grid">
-        ${visibleHeroes.map(h => {
-          const lockedBySeries = seriesLocked.has(h.id) && !takenSet.has(h.id);
-          const disabled = !isMyTurnNow || takenSet.has(h.id) || lockedBySeries;
-          return `
-          <div class="dd-pick-card ${disabled ? 'disabled' : ''} ${lockedBySeries ? 'fearless-locked' : ''}" data-hero-id="${h.id}" title="${lockedBySeries ? 'Уже выбран ранее в этой серии (Fearless Draft)' : h.name}">
-            ${heroAvatar(h, 'dd-hero-img')}
-            <div class="dd-hero-name">${h.name}</div>
-          </div>`;
-        }).join('')}
-        ${visibleHeroes.length === 0 ? '<div class="dd-empty-state" style="grid-column:1/-1;">Ничего не найдено</div>' : ''}
+      <div class="dd-hero-pick-scroll">
+        ${pickGroups.length === 0 ? '<div class="dd-empty-state">Ничего не найдено</div>' : pickGroups.map(g => `
+          <div class="dd-attr-section">
+            <div class="dd-attr-heading" style="color:${ATTR_META[g.attr].color}">
+              <span class="dd-dot" style="background:${ATTR_META[g.attr].color}"></span>${ATTR_META[g.attr].label}
+              <span class="dd-attr-count">${g.heroes.length}</span>
+            </div>
+            <div class="dd-hero-pick-grid">
+              ${g.heroes.map(pickCard).join('')}
+            </div>
+          </div>
+        `).join('')}
       </div>
     `;
 
