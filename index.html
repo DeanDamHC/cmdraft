@@ -162,12 +162,15 @@
 .dd-slot-box { flex: 1; background: var(--panel); border: 1px dashed var(--border); padding: 26px 12px; text-align: center; cursor: pointer; transition: border-color .15s; }
 .dd-slot-box.fp { border-color: var(--radiant-dim); }
 .dd-slot-box.sp { border-color: var(--dire-dim); }
+.dd-slot-box.obs { border-color: var(--obs); opacity: .75; }
 .dd-slot-box.filled.fp { border-style: solid; border-color: var(--radiant); background: var(--radiant-dim); }
 .dd-slot-box.filled.sp { border-style: solid; border-color: var(--dire); background: var(--dire-dim); }
+.dd-slot-box.obs.filled { border-style: solid; background: rgba(127,143,168,0.14); opacity: 1; }
 .dd-slot-box.taken { cursor: not-allowed; }
 .dd-slot-box .slot-label { font-family: 'Cinzel'; font-weight: 700; font-size: 13px; margin-bottom: 6px; }
 .dd-slot-box.fp .slot-label { color: var(--radiant); }
 .dd-slot-box.sp .slot-label { color: var(--dire); }
+.dd-slot-box.obs .slot-label { color: var(--obs); }
 .dd-slot-box .slot-status { font-size: 11px; color: var(--text-dim); }
 
 /* ---- Draft: series bar ---- */
@@ -639,7 +642,7 @@
   }
 
   async function leaveLobby() {
-    if (lobbyId && room && !room.started && myRole) {
+    if (lobbyId && room && !room.started && (myRole === 'fp' || myRole === 'sp')) {
       try {
         const r = await readLobby(lobbyId);
         if (r) {
@@ -782,8 +785,16 @@
   // ---------- render ----------
   function render() {
     ROOT.querySelectorAll('.dd-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === activeTab));
+    // Re-rendering replaces the whole body via innerHTML, which would otherwise snap any
+    // scrollable list (like the hero pick grid) back to the top on every timer tick/poll.
+    const scrollable = BODY.querySelector('.dd-hero-pick-grid');
+    const savedScroll = scrollable ? scrollable.scrollTop : null;
     BODY.innerHTML = activeTab === 'db' ? renderDb() : renderLobbyTab();
     attachHandlers();
+    if (savedScroll !== null) {
+      const restored = BODY.querySelector('.dd-hero-pick-grid');
+      if (restored) restored.scrollTop = savedScroll;
+    }
   }
 
   function renderDb() {
@@ -926,7 +937,7 @@
     return `
       <div class="dd-lobby" style="max-width:560px;">
         <h3>${esc(r.name)}</h3>
-        <p>${(r.format || '').toUpperCase()} ${r.fearless ? '· Fearless Draft' : ''} — займите сторону и нажмите «Начать», когда оба капитана готовы.</p>
+        <p>${(r.format || '').toUpperCase()} ${r.fearless ? '· Fearless Draft' : ''} — займите сторону и нажмите «Начать», когда оба капитана готовы. Можно также просто наблюдать.</p>
         ${connError ? `<div class="dd-error" style="margin-bottom:14px;">${connError}</div>` : ''}
         <div class="dd-waiting-slots">
           <div class="dd-slot-box fp ${r.fpReady ? 'filled' : ''} ${r.fpReady && myRole !== 'fp' ? 'taken' : ''}" id="dd-slot-fp">
@@ -936,6 +947,10 @@
           <div class="dd-slot-box sp ${r.spReady ? 'filled' : ''} ${r.spReady && myRole !== 'sp' ? 'taken' : ''}" id="dd-slot-sp">
             <div class="slot-label">DIRE</div>
             <div class="slot-status">${r.spReady ? (myRole === 'sp' ? 'Вы здесь' : 'Занято') : 'Свободно — нажмите, чтобы занять'}</div>
+          </div>
+          <div class="dd-slot-box obs ${myRole === 'observer' ? 'filled' : ''}" id="dd-slot-obs">
+            <div class="slot-label">НАБЛЮДАТЕЛЬ</div>
+            <div class="slot-status">${myRole === 'observer' ? 'Вы здесь' : 'Смотреть без участия'}</div>
           </div>
         </div>
         <div class="dd-row-gap">
@@ -1038,7 +1053,7 @@
       </div>
     `;
 
-    const roleLabel = myRole === 'fp' ? 'Radiant (First Pick)' : 'Dire (Second Pick)';
+    const roleLabel = myRole === 'fp' ? 'Radiant (First Pick)' : myRole === 'sp' ? 'Dire (Second Pick)' : 'наблюдатель';
 
     return `
       ${seriesBar}
@@ -1151,6 +1166,8 @@
     if (slotFp) slotFp.onclick = () => { if (!room.fpReady) claimSlot('fp'); };
     const slotSp = document.getElementById('dd-slot-sp');
     if (slotSp) slotSp.onclick = () => { if (!room.spReady) claimSlot('sp'); };
+    const slotObs = document.getElementById('dd-slot-obs');
+    if (slotObs) slotObs.onclick = () => { myRole = 'observer'; render(); };
     const startBtn = document.getElementById('dd-start');
     if (startBtn) startBtn.onclick = startDraft;
 
