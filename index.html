@@ -390,6 +390,7 @@
   let activeTab = 'db';
   let dbFilter = 'all';
   let dbSearch = '';
+  let draftHeroSearch = '';
 
   // --- lobby-browser state (per browser) ---
   let lobbyView = 'list'; // 'list' | 'create' | 'password' | 'inside'
@@ -456,8 +457,16 @@
   //   3. Copy the database URL shown at the top of that page
   //      (looks like https://your-project-id-default-rtdb.europe-west1.firebasedatabase.app)
   //   4. Paste it below, replacing the placeholder text
-  const FIREBASE_DB_URL = 'https://vpadlucup-default-rtdb.europe-west1.firebasedatabase.app';
+  const FIREBASE_DB_URL = 'PASTE_YOUR_FIREBASE_DATABASE_URL_HERE';
   const FIREBASE_CONFIGURED = !FIREBASE_DB_URL.includes('PASTE_YOUR');
+
+  // --- Admin access ---
+  // Lets you delete stale/test lobbies from the list. This is a simple client-side gate, not
+  // real security — anyone who views this file's source can read the password below. Fine for
+  // keeping a shared lobby list tidy among friends; change it to something of your own before
+  // deploying, and don't rely on it to protect anything sensitive.
+  const ADMIN_PASSWORD = 'CHANGE_ME_ADMIN_PASSWORD';
+  let isAdmin = false;
 
   function fetchWithTimeout(url, options, ms) {
     const controller = new AbortController();
@@ -554,6 +563,28 @@
     startListPolling();
     render();
   }
+
+  function toggleAdmin() {
+    if (isAdmin) { isAdmin = false; render(); return; }
+    const pw = prompt('Пароль администратора:');
+    if (pw === null) return;
+    if (pw === ADMIN_PASSWORD) { isAdmin = true; render(); }
+    else alert('Неверный пароль.');
+  }
+
+  async function deleteLobby(id, name) {
+    if (!confirm(`Удалить лобби «${name}» безвозвратно?`)) return;
+    try {
+      const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/lobbies/${id}.json`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      await refreshLobbyList();
+      connError = null;
+    } catch (e) {
+      connError = 'Не удалось удалить лобби: ' + e.message;
+    }
+    render();
+  }
+
   function goToCreate() {
     lobbyView = 'create';
     createName = '';
@@ -655,6 +686,7 @@
     myRole = null;
     room = null;
     lobbyId = '';
+    draftHeroSearch = '';
     stopTimers();
     goToList();
   }
@@ -786,14 +818,30 @@
   function render() {
     ROOT.querySelectorAll('.dd-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === activeTab));
     // Re-rendering replaces the whole body via innerHTML, which would otherwise snap any
-    // scrollable list (like the hero pick grid) back to the top on every timer tick/poll.
+    // scrollable list (like the hero pick grid) back to the top, and any focused text input's
+    // cursor to the end, on every timer tick/poll — so save and restore both here.
     const scrollable = BODY.querySelector('.dd-hero-pick-grid');
     const savedScroll = scrollable ? scrollable.scrollTop : null;
+    const active = document.activeElement;
+    const activeId = (active && BODY.contains(active) && active.id) ? active.id : null;
+    const savedSelStart = (activeId && active.selectionStart != null) ? active.selectionStart : null;
+    const savedSelEnd = (activeId && active.selectionEnd != null) ? active.selectionEnd : null;
+
     BODY.innerHTML = activeTab === 'db' ? renderDb() : renderLobbyTab();
     attachHandlers();
+
     if (savedScroll !== null) {
       const restored = BODY.querySelector('.dd-hero-pick-grid');
       if (restored) restored.scrollTop = savedScroll;
+    }
+    if (activeId) {
+      const restoredEl = document.getElementById(activeId);
+      if (restoredEl) {
+        restoredEl.focus();
+        if (savedSelStart !== null && restoredEl.setSelectionRange) {
+          try { restoredEl.setSelectionRange(savedSelStart, savedSelEnd); } catch (e) { /* not a text input */ }
+        }
+      }
     }
   }
 
@@ -852,7 +900,10 @@
     return `
       <div class="dd-lobby-header-row">
         <h3>Активные лобби</h3>
-        <button class="dd-btn-primary" style="width:auto; margin:0; padding:9px 16px;" id="dd-create-open">+ Создать лобби</button>
+        <div class="dd-row-gap">
+          <button class="dd-btn-secondary" id="dd-admin-toggle">${isAdmin ? 'Выйти из админки' : 'Админ'}</button>
+          <button class="dd-btn-primary" style="width:auto; margin:0; padding:9px 16px;" id="dd-create-open">+ Создать лобби</button>
+        </div>
       </div>
       ${connError ? `<div class="dd-error" style="margin-bottom:14px;">${connError}</div>` : ''}
       ${lobbiesList.length === 0 ? `<div class="dd-empty-state">Активных лобби пока нет — создайте своё.</div>` : `
@@ -869,7 +920,10 @@
                   ${l.fearless ? '<span class="fearless">FEARLESS DRAFT</span>' : ''}
                 </div>
               </div>
-              <button class="dd-btn-secondary" data-join-id="${l.id}" data-join-name="${esc(l.name)}">Войти</button>
+              <div class="dd-row-gap">
+                ${isAdmin ? `<button class="dd-btn-secondary" style="color:var(--dire); border-color:var(--dire);" data-delete-id="${l.id}" data-delete-name="${esc(l.name)}">Удалить</button>` : ''}
+                <button class="dd-btn-secondary" data-join-id="${l.id}" data-join-name="${esc(l.name)}">Войти</button>
+              </div>
             </div>
           `;
           }).join('')}
@@ -1039,9 +1093,11 @@
     const takenSet = new Set([...banned, ...fpPicks, ...spPicks]);
     const seriesLocked = new Set(r.fearless ? (r.seriesPicked || []) : []);
     const isMyTurnNow = step.side === myRole;
+    const visibleHeroes = allHeroes.filter(h => h.name.toLowerCase().includes(draftHeroSearch.toLowerCase()));
     const heroGrid = `
+      <input class="dd-search" id="dd-draft-search" placeholder="Поиск героя&hellip;" value="${esc(draftHeroSearch)}" style="width:100%; margin-bottom:8px;">
       <div class="dd-hero-pick-grid">
-        ${allHeroes.map(h => {
+        ${visibleHeroes.map(h => {
           const lockedBySeries = seriesLocked.has(h.id) && !takenSet.has(h.id);
           const disabled = !isMyTurnNow || takenSet.has(h.id) || lockedBySeries;
           return `
@@ -1050,6 +1106,7 @@
             <div class="dd-hero-name">${h.name}</div>
           </div>`;
         }).join('')}
+        ${visibleHeroes.length === 0 ? '<div class="dd-empty-state" style="grid-column:1/-1;">Ничего не найдено</div>' : ''}
       </div>
     `;
 
@@ -1124,21 +1181,16 @@
     });
 
     const search = document.getElementById('dd-search');
-    if (search) {
-      search.oninput = (e) => {
-        dbSearch = e.target.value;
-        render();
-        const el = document.getElementById('dd-search');
-        el.focus();
-        el.setSelectionRange(dbSearch.length, dbSearch.length);
-      };
-    }
+    if (search) search.oninput = (e) => { dbSearch = e.target.value; render(); };
     ROOT.querySelectorAll('.dd-filter-btn').forEach(b => b.onclick = () => { dbFilter = b.dataset.attr; render(); });
 
     // --- lobby list ---
     const createOpenBtn = document.getElementById('dd-create-open');
     if (createOpenBtn) createOpenBtn.onclick = goToCreate;
+    const adminToggle = document.getElementById('dd-admin-toggle');
+    if (adminToggle) adminToggle.onclick = toggleAdmin;
     ROOT.querySelectorAll('[data-join-id]').forEach(b => b.onclick = () => goToPassword({ id: b.dataset.joinId, name: b.dataset.joinName }));
+    ROOT.querySelectorAll('[data-delete-id]').forEach(b => b.onclick = () => deleteLobby(b.dataset.deleteId, b.dataset.deleteName));
 
     // --- create screen ---
     const nameInput = document.getElementById('dd-create-name');
@@ -1172,6 +1224,8 @@
     if (startBtn) startBtn.onclick = startDraft;
 
     // --- active draft ---
+    const draftSearchInput = document.getElementById('dd-draft-search');
+    if (draftSearchInput) draftSearchInput.oninput = (e) => { draftHeroSearch = e.target.value; render(); };
     const leaveBtn = document.getElementById('dd-leave');
     if (leaveBtn) leaveBtn.onclick = leaveLobby;
     const resetBtn = document.getElementById('dd-reset');
