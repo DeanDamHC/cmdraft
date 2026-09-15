@@ -1,4 +1,4 @@
-﻿<style>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
 #dota-draft-root {
@@ -501,17 +501,17 @@
   function heroById(id) { return allHeroes.find(h => h.id === id); }
   function currentStep(r) {
     if (!r) return null;
-    const idx = r.actions.length;
+    const idx = (r.actions || []).length;
     return idx < 24 ? SEQUENCE[idx] : null;
   }
   function bannedIds(r) {
     const s = [];
-    r.actions.forEach((a, i) => { if (SEQUENCE[i].type === 'ban') s.push(a.heroId); });
+    (r.actions || []).forEach((a, i) => { if (SEQUENCE[i].type === 'ban') s.push(a.heroId); });
     return s;
   }
   function pickedIds(r, side) {
     const s = [];
-    r.actions.forEach((a, i) => { if (SEQUENCE[i].type === 'pick' && SEQUENCE[i].side === side) s.push(a.heroId); });
+    (r.actions || []).forEach((a, i) => { if (SEQUENCE[i].type === 'pick' && SEQUENCE[i].side === side) s.push(a.heroId); });
     return s;
   }
   function standardTime(stepIdx) { return stepIdx === 0 ? 15 : 30; }
@@ -679,7 +679,7 @@
     const elapsed = (Date.now() - r.stepStartedAt) / 1000;
     if (elapsed < allowed) return;
 
-    const locked = new Set([...bannedIds(r), ...pickedIds(r, 'fp'), ...pickedIds(r, 'sp'), ...(r.fearless ? r.seriesPicked : [])]);
+    const locked = new Set([...bannedIds(r), ...pickedIds(r, 'fp'), ...pickedIds(r, 'sp'), ...(r.fearless ? (r.seriesPicked || []) : [])]);
     let heroId = null;
     if (step.type === 'pick') {
       const pool = allHeroes.filter(h => !locked.has(h.id));
@@ -711,7 +711,7 @@
     r = r || room;
     const step = currentStep(r);
     if (!step || step.side !== myRole) return;
-    const locked = new Set([...bannedIds(r), ...pickedIds(r, 'fp'), ...pickedIds(r, 'sp'), ...(r.fearless ? r.seriesPicked : [])]);
+    const locked = new Set([...bannedIds(r), ...pickedIds(r, 'fp'), ...pickedIds(r, 'sp'), ...(r.fearless ? (r.seriesPicked || []) : [])]);
     if (locked.has(heroId)) return;
     const idx = r.actions.length;
     const reserve = step.side === 'fp' ? r.fpReserve : r.spReserve;
@@ -743,7 +743,7 @@
     r.history.push({ gameNumber: r.gameNumber, fpPicks, spPicks, winner: winnerSide });
     if (winnerSide === 'fp') r.fpWins++; else r.spWins++;
     if (r.fearless) {
-      const combined = new Set([...r.seriesPicked, ...fpPicks, ...spPicks]);
+      const combined = new Set([...(r.seriesPicked || []), ...fpPicks, ...spPicks]);
       r.seriesPicked = [...combined];
     }
     if (!seriesOver(r)) {
@@ -1022,7 +1022,7 @@
     }).join('')}</div>`;
 
     const takenSet = new Set([...banned, ...fpPicks, ...spPicks]);
-    const seriesLocked = new Set(r.fearless ? r.seriesPicked : []);
+    const seriesLocked = new Set(r.fearless ? (r.seriesPicked || []) : []);
     const isMyTurnNow = step.side === myRole;
     const heroGrid = `
       <div class="dd-hero-pick-grid">
@@ -1085,11 +1085,12 @@
   }
 
   function renderHistory(r) {
-    if (!r.history.length) return '';
+    const history = r.history || [];
+    if (!history.length) return '';
     return `
       <div class="dd-history">
         <h5>История серии</h5>
-        ${r.history.map(g => `
+        ${history.map(g => `
           <div class="dd-history-game">
             <div class="num">Игра ${g.gameNumber}</div>
             <div class="dd-history-picks ${g.winner==='fp'?'winner':''}">${g.fpPicks.map(id => { const h = heroById(id); return h ? heroAvatar(h, 'dd-history-avatar') : ''; }).join('')}</div>
