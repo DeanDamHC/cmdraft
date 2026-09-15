@@ -462,11 +462,22 @@
     return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
   }
 
+  // Firebase Realtime Database silently drops keys whose value is an empty array/object,
+  // so a brand-new lobby (no bans/picks/history yet) comes back missing these fields entirely.
+  // Restore sane defaults after every read so the rest of the app can always assume they exist.
+  function normalizeRoom(r) {
+    if (!r) return r;
+    if (!Array.isArray(r.actions)) r.actions = [];
+    if (!Array.isArray(r.history)) r.history = [];
+    if (!Array.isArray(r.seriesPicked)) r.seriesPicked = [];
+    return r;
+  }
+
   async function readLobby(id) {
     const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/lobbies/${id}.json`);
     if (!res.ok) throw new Error('Firebase read failed: HTTP ' + res.status);
     const data = await res.json();
-    return data || null;
+    return normalizeRoom(data) || null;
   }
   async function writeLobby(id, obj) {
     obj.updatedAt = Date.now();
@@ -482,7 +493,9 @@
     const res = await fetchWithTimeout(`${FIREBASE_DB_URL}/lobbies.json`);
     if (!res.ok) throw new Error('Firebase read failed: HTTP ' + res.status);
     const data = await res.json();
-    return data || {};
+    const result = data || {};
+    Object.keys(result).forEach(id => normalizeRoom(result[id]));
+    return result;
   }
 
   function heroById(id) { return allHeroes.find(h => h.id === id); }
